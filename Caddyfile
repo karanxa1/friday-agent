@@ -1,4 +1,13 @@
 otpgod.com, www.otpgod.com {
 	encode gzip
-	reverse_proxy web:3000
+
+	# API + SSE streams go straight to the FastAPI backend.
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+
+	# Everything else is the Next.js frontend.
+	handle {
+		reverse_proxy web:3000
+	}
 }

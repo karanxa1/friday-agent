@@ -1,9 +1,9 @@
 import type { StreamEvent } from "./types";
 
-// Talk to the FastAPI control plane directly (CORS is open) so SSE streams
-// are never buffered by the Next.js dev rewrite proxy. Falls back to the
-// relative path (proxied) if unset at build time.
-const API_BASE = process.env.NEXT_PUBLIC_FRIDAY_API ?? "http://localhost:8080";
+// Default to same-origin ("") so the browser calls /api on the current host
+// (e.g. https://otpgod.com/api → Caddy → backend). Set NEXT_PUBLIC_FRIDAY_API
+// only to target a different origin (e.g. http://localhost:8080 in dev).
+const API_BASE = process.env.NEXT_PUBLIC_FRIDAY_API ?? "";
 const url = (path: string) => `${API_BASE}${path}`;
 
 // When the backend runs with FRIDAY_API_TOKEN set, the matching token is sent

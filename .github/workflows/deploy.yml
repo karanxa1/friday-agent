@@ -79,7 +79,7 @@ jobs:
             --exclude '__pycache__' --exclude 'deploy' \
             ./ "${EC2_USER}@${EC2_HOST}:/home/ec2-user/friday/"
           ssh $SSH_OPTS "${EC2_USER}@${EC2_HOST}" \
-            'cd /home/ec2-user/friday && sudo docker compose up -d --build && sudo docker compose ps'
+            'cd /home/ec2-user/friday && sudo docker compose up -d --build && sudo docker compose restart caddy && sudo docker compose ps'
 
       - name: Revoke runner IP from security group
         if: always()

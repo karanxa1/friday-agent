@@ -709,7 +709,11 @@ export function MediaView({ card }: { card: ToolCard }) {
         <div key={`uri${i}`} className="flex flex-col gap-1">
           <iframe
             src={uri}
-            sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+            // No allow-same-origin: with allow-scripts that combo lets framed
+            // content rewrite its own sandbox and escape. Opaque origin keeps
+            // these MCP-supplied app URLs isolated from the Friday UI.
+            sandbox="allow-scripts allow-forms allow-popups"
+            referrerPolicy="no-referrer"
             title={`${card.name} interactive app ${i + 1}`}
             className="h-[440px] w-full rounded-lg border border-edge-subtle bg-white"
           />

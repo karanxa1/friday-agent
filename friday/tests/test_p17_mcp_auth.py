@@ -124,6 +124,20 @@ def test_extract_media_uri_list():
     )
 
 
+def test_safe_app_uri_blocks_own_origin(monkeypatch):
+    from core.config import settings
+    from control_plane.streaming import _safe_app_uri
+
+    object.__setattr__(settings, "public_url", "https://otpgod.com")
+    try:
+        assert _safe_app_uri("https://otpgod.com/api/files/x") is False  # self-origin blocked
+        assert _safe_app_uri("https://my-space.hf.space/") is True  # external app allowed
+        assert _safe_app_uri("ftp://otpgod.com/") is False  # non-http blocked
+        assert _safe_app_uri("javascript:alert(1)") is False  # no js scheme
+    finally:
+        object.__setattr__(settings, "public_url", "")
+
+
 def test_manage_tools_register_and_attach_roundtrip(monkeypatch, tmp_path):
     monkeypatch.setenv("FRIDAY_HOME", str(tmp_path))
     reg = tmp_path / "registry"

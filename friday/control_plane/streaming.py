@@ -740,6 +740,30 @@ def _media_from_paths(result_text: str) -> dict[str, Any] | None:
     return {"images": images, "html": [], "uris": []} if images else None
 
 
+def _safe_app_uri(uri: str) -> bool:
+    """Gate a text/uri-list URL before it is framed in the UI.
+
+    Only http(s), and never the Friday UI's own origin — otherwise an injected
+    MCP tool result could iframe the app itself (clickjacking / same-origin
+    abuse). The iframe is additionally rendered with an opaque-origin sandbox on
+    the client, so this is defense in depth.
+    """
+    try:
+        from urllib.parse import urlparse
+
+        u = urlparse(uri.strip())
+        if u.scheme not in ("http", "https") or not u.hostname:
+            return False
+        from core.config import settings
+
+        own = urlparse(str(settings.public_url or "")).hostname
+        if own and u.hostname.lower() == own.lower():
+            return False
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 def _extract_media(resp: Any) -> dict[str, Any] | None:
     """Pull renderable media (images, interactive HTML) out of an MCP result.
 
@@ -783,13 +807,13 @@ def _extract_media(resp: Any) -> dict[str, Any] | None:
             elif mime == "text/uri-list" and text and len(uris) < _MAX_MEDIA_ITEMS:
                 for line in str(text).splitlines():
                     line = line.strip()
-                    if line and not line.startswith("#") and line[:6].lower() in ("http:/", "https:"):
+                    if line and not line.startswith("#") and _safe_app_uri(line):
                         uris.append(line[:2000])
                         break
             elif mime == "text/uri-list" and not text:
                 # Some servers carry the URL on the resource ``uri`` field.
                 uri = str(res.get("uri") or "")
-                if uri[:4].lower() == "http" and len(uris) < _MAX_MEDIA_ITEMS:
+                if _safe_app_uri(uri) and len(uris) < _MAX_MEDIA_ITEMS:
                     uris.append(uri[:2000])
     if not images and not html and not uris:
         return None

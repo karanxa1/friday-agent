@@ -1,0 +1,4 @@
+otpgod.com, www.otpgod.com {
+	encode gzip
+	reverse_proxy web:3000
+}

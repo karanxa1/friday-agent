@@ -1,5 +1,6 @@
-# Friday — single-host deploy (backend + web). Used by the CD workflow and
-# manual deploys. friday.env is generated at deploy time (gitignored, secrets).
+# Friday — single-host deploy (Caddy TLS + backend + web).
+# Caddy terminates HTTPS for otpgod.com (auto Let's Encrypt) and proxies to web.
+# friday.env is generated at deploy time (gitignored, secrets).
 services:
   backend:
     build: ./friday
@@ -18,11 +19,26 @@ services:
     build: ./web
     environment:
       - FRIDAY_API=http://backend:8080
-    ports:
-      - "80:3000"
+    expose:
+      - "3000"
     depends_on:
       - backend
     restart: unless-stopped
 
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+    restart: unless-stopped
+
 volumes:
   friday-data:
+  caddy-data:
+  caddy-config:

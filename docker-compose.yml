@@ -10,7 +10,9 @@ services:
       - FRIDAY_BROWSER_HEADLESS=1
     volumes:
       - friday-data:/data
-      - /var/run/docker.sock:/var/run/docker.sock
+      # NOTE: the host docker socket is intentionally NOT mounted — it would let
+      # a compromised (e.g. prompt-injected) agent escape to host root. The
+      # agent runs code via run_python/run_command directly instead.
     ports:
       - "8080:8080"
     restart: unless-stopped

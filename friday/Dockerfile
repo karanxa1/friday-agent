@@ -18,6 +18,10 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 RUN pip install --upgrade pip && pip install -e .
 
+# Browser toolset: Chromium + system deps so Playwright can drive a real
+# (headless) browser inside the container.
+RUN playwright install --with-deps chromium
+
 # Copy the application.
 COPY . .
 

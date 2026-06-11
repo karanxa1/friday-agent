@@ -7,3 +7,6 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .DS_Store
+
+# AWS deploy artifacts (keys, manifests) — never commit
+deploy/

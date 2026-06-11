@@ -48,14 +48,37 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _default_model(tier: str) -> str:
+    """Default model id for a tier, depending on the active LLM provider.
+
+    For the ``vertex`` provider we run a single Gemini model for both tiers;
+    for the (legacy) Anthropic-protocol provider we keep the Claude defaults.
+    """
+    provider = _env("FRIDAY_LLM_PROVIDER", "anthropic").lower()
+    if provider in ("vertex", "gemini"):
+        return "gemini-3.5-flash"
+    return "claude-opus-4-8" if tier == "hard" else "claude-sonnet-4-6"
+
+
 @dataclass(frozen=True)
 class Settings:
     """Immutable runtime settings, resolved once at import time."""
 
+    # Provider:
+    #   "anthropic" — Anthropic-protocol endpoint (legacy proxy / direct API)
+    #   "vertex"    — Google Vertex AI (Gemini) via ADC / service account
+    #   "gemini"    — Google Gemini Developer API (AI Studio) via a simple API key
+    llm_provider: str = field(default_factory=lambda: _env("FRIDAY_LLM_PROVIDER", "anthropic").lower())
     llm_base_url: str = field(default_factory=lambda: _env("FRIDAY_LLM_BASE_URL", "http://localhost:8990"))
     llm_api_key: str = field(default_factory=lambda: _env("FRIDAY_LLM_API_KEY", ""))
-    model_hard: str = field(default_factory=lambda: _env("FRIDAY_MODEL_HARD", "claude-opus-4-8"))
-    model_easy: str = field(default_factory=lambda: _env("FRIDAY_MODEL_EASY", "claude-sonnet-4-6"))
+    # Vertex AI settings (used when llm_provider == "vertex"). Gemini 3.5 Flash
+    # is served only on the "global" location.
+    vertex_project: str = field(default_factory=lambda: _env("FRIDAY_VERTEX_PROJECT", ""))
+    vertex_location: str = field(default_factory=lambda: _env("FRIDAY_VERTEX_LOCATION", "global"))
+    # Gemini Developer API key (used when llm_provider == "gemini").
+    gemini_api_key: str = field(default_factory=lambda: _env("GEMINI_API_KEY", ""))
+    model_hard: str = field(default_factory=lambda: _env("FRIDAY_MODEL_HARD", _default_model("hard")))
+    model_easy: str = field(default_factory=lambda: _env("FRIDAY_MODEL_EASY", _default_model("easy")))
     force_tier: str = field(default_factory=lambda: _env("FRIDAY_FORCE_TIER", ""))
     thinking: bool = field(default_factory=lambda: _env("FRIDAY_THINKING", "1") not in ("0", "false", "False", ""))
     thinking_budget: int = field(default_factory=lambda: _env_int("FRIDAY_THINKING_BUDGET", 2048))

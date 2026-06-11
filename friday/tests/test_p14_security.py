@@ -80,6 +80,20 @@ def test_l2_does_not_auto_approve_self_edit(monkeypatch):
         object.__setattr__(settings, "autonomy", "L1")
 
 
+def test_l3_full_auto_approves_everything(monkeypatch):
+    # L3 is the explicit full-autonomy opt-in: every action auto-proceeds.
+    from control_plane import approvals
+    from core.config import settings
+
+    object.__setattr__(settings, "autonomy", "L3")
+    try:
+        assert approvals.gate("self_edit") is True
+        assert approvals.gate("capability") is True
+        assert approvals.gate("credential") is True
+    finally:
+        object.__setattr__(settings, "autonomy", "L1")
+
+
 def test_web_url_log_strips_query():
     from friday_tools.web import _log_url
 

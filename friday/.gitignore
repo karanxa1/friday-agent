@@ -18,3 +18,7 @@ reference/
 
 # OS
 .DS_Store
+
+# GCP service-account key (never commit)
+friday-vertex-key.json
+*-sa-key.json

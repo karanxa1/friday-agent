@@ -9,6 +9,8 @@ The autonomy level (settings.autonomy) controls behavior:
   L0  -> everything staged, nothing auto-applies (suggest only)
   L1  -> sensitive actions staged for approval (default)
   L2  -> whitelisted action types auto-approve; the rest still staged
+  L3  -> full-auto: every action auto-approves, NO human approval (operator
+         opt-in; only safe on a single-user, network-locked host)
 """
 
 from __future__ import annotations
@@ -62,8 +64,17 @@ _load()
 
 
 def gate(action_type: str) -> bool:
-    """Return True if an action of this type may auto-proceed without staging."""
+    """Return True if an action of this type may auto-proceed without staging.
+
+    L3 ("full-auto") auto-approves EVERY action — no human approval at all.
+    This is an explicit operator opt-in for a single-user, network-locked
+    deployment; it removes all safety gates, so the host must not be exposed
+    beyond the operator. L2 auto-approves only whitelisted types; L0/L1 always
+    stage sensitive actions.
+    """
     level = settings.autonomy.upper()
+    if level == "L3":
+        return True
     if level == "L2" and action_type in _L2_WHITELIST:
         return True
     return False  # L0 and L1 always stage sensitive actions

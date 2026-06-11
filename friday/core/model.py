@@ -31,6 +31,57 @@ def _normalize_model_id(model_id: str) -> str:
 
 
 @functools.lru_cache(maxsize=16)
+def _make_gemini_llm_cached(
+    model_id: str, api_key: str, max_tokens: int, thinking: bool, thinking_budget: int,
+) -> LiteLlm:
+    """Build a LiteLlm routed to the Gemini Developer API (AI Studio).
+
+    Uses a plain API key (``GEMINI_API_KEY``) — no service account, so it runs
+    anywhere (e.g. an EC2 box) without GCP credential files. Thinking is
+    forwarded via LiteLLM's unified ``thinking`` param so Gemini returns thought
+    parts (rendered as the UI's "thinking" section).
+    """
+    routable = model_id if "/" in model_id else f"gemini/{model_id}"
+    kwargs: dict = {
+        "model": routable,
+        "api_key": api_key,
+        "max_tokens": max_tokens,
+    }
+    if thinking:
+        kwargs["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
+        kwargs["allowed_openai_params"] = ["thinking"]
+    return LiteLlm(**kwargs)
+
+
+@functools.lru_cache(maxsize=16)
+def _make_vertex_llm_cached(
+    model_id: str, project: str, location: str, max_tokens: int,
+    thinking: bool, thinking_budget: int,
+) -> LiteLlm:
+    """Build a LiteLlm routed to Vertex AI (Gemini).
+
+    LiteLLM authenticates to Vertex via Application Default Credentials (a
+    service account on Cloud Run, or ``gcloud auth application-default login``
+    locally). When ``thinking`` is on, we forward LiteLLM's unified ``thinking``
+    param, which maps to Gemini's ``thinkingConfig`` with ``includeThoughts`` so
+    reasoning is streamed back as thought parts (rendered as the UI's "thinking"
+    section). ``max_tokens`` is set generously so thinking + answer both fit.
+    """
+    routable = model_id if "/" in model_id else f"vertex_ai/{model_id}"
+    kwargs: dict = {
+        "model": routable,
+        "vertex_location": location or "global",
+        "max_tokens": max_tokens,
+    }
+    if project:
+        kwargs["vertex_project"] = project
+    if thinking:
+        kwargs["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
+        kwargs["allowed_openai_params"] = ["thinking"]
+    return LiteLlm(**kwargs)
+
+
+@functools.lru_cache(maxsize=16)
 def _make_llm_cached(model_id: str, base_url: str, api_key: str, thinking: bool) -> LiteLlm:
     kwargs: dict = {
         "model": _normalize_model_id(model_id),
@@ -68,6 +119,21 @@ def make_llm(tier: Tier = "easy", *, thinking: bool | None = None) -> LiteLlm:
     if forced in ("easy", "hard"):
         tier = forced  # type: ignore[assignment]
     model_id = settings.model_hard if tier == "hard" else settings.model_easy
+    # Vertex AI (Gemini): route through LiteLLM's vertex_ai provider. No
+    # Anthropic-style thinking budget and no ``-thinking`` model variant — Gemini
+    # handles reasoning natively.
+    if settings.llm_provider == "gemini":
+        use_thinking = settings.thinking if thinking is None else thinking
+        return _make_gemini_llm_cached(
+            model_id, settings.gemini_api_key, settings.max_tokens,
+            use_thinking, settings.thinking_budget,
+        )
+    if settings.llm_provider == "vertex":
+        use_thinking = settings.thinking if thinking is None else thinking
+        return _make_vertex_llm_cached(
+            model_id, settings.vertex_project, settings.vertex_location,
+            settings.max_tokens, use_thinking, settings.thinking_budget,
+        )
     use_thinking = settings.thinking if thinking is None else thinking
     if use_thinking:
         model_id = _with_thinking(model_id)

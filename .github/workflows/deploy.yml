@@ -1,0 +1,93 @@
+name: Deploy
+
+# Auto-deploy to the EC2 box on every push to main. The box is IP-locked, so we
+# temporarily allowlist the runner's IP on the security group, deploy over SSH,
+# then revoke it.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-south-1
+  SG_ID: sg-0b4e3515d34a63545
+  EC2_USER: ec2-user
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Allowlist runner IP on security group
+        id: allowlist
+        run: |
+          RUNNER_IP="$(curl -s https://checkip.amazonaws.com | tr -d '\n')"
+          echo "runner_ip=$RUNNER_IP" >> "$GITHUB_OUTPUT"
+          aws ec2 authorize-security-group-ingress \
+            --region "$AWS_REGION" --group-id "$SG_ID" \
+            --protocol tcp --port 22 --cidr "$RUNNER_IP/32" || true
+
+      - name: Set up SSH key
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Generate friday.env (from secrets)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CALLMISSED_API_KEY: ${{ secrets.CALLMISSED_API_KEY }}
+        run: |
+          {
+            echo "FRIDAY_LLM_PROVIDER=gemini"
+            echo "ADK_SUPPRESS_GEMINI_LITELLM_WARNINGS=true"
+            echo "GEMINI_API_KEY=${GEMINI_API_KEY}"
+            echo "FRIDAY_MODEL_HARD=gemini-3.5-flash"
+            echo "FRIDAY_MODEL_EASY=gemini-3.5-flash"
+            echo "FRIDAY_THINKING=1"
+            echo "FRIDAY_THINKING_BUDGET=4096"
+            echo "FRIDAY_MAX_TOKENS=12288"
+            echo "FRIDAY_AUTONOMY=L3"
+            echo "FRIDAY_BROWSER_HEADLESS=1"
+            echo "FRIDAY_FILE_ROOT=project"
+            echo "CALLMISSED_API_KEY=${CALLMISSED_API_KEY}"
+            echo "CALLMISSED_BASE_URL=https://api.callmissed.com"
+          } > friday.env
+
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          SSH_OPTS="-i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+          rsync -az --delete -e "ssh $SSH_OPTS" \
+            --exclude '.git' --exclude '.github' --exclude 'reference' \
+            --exclude 'node_modules' --exclude '.next' --exclude '.venv' \
+            --exclude '__pycache__' --exclude 'deploy' \
+            ./ "${EC2_USER}@${EC2_HOST}:/home/ec2-user/friday/"
+          ssh $SSH_OPTS "${EC2_USER}@${EC2_HOST}" \
+            'cd /home/ec2-user/friday && sudo docker compose up -d --build && sudo docker compose ps'
+
+      - name: Revoke runner IP from security group
+        if: always()
+        env:
+          RUNNER_IP: ${{ steps.allowlist.outputs.runner_ip }}
+        run: |
+          if [ -n "$RUNNER_IP" ]; then
+            aws ec2 revoke-security-group-ingress \
+              --region "$AWS_REGION" --group-id "$SG_ID" \
+              --protocol tcp --port 22 --cidr "$RUNNER_IP/32" || true
+          fi

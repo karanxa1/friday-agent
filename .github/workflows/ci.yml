@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: friday
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Install Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+      - name: Run unit tests (live-model tests excluded)
+        run: |
+          python -m pytest tests/ -q \
+            --deselect tests/test_p11_evals.py::test_eval_agent_case_runs_live \
+            --deselect tests/test_p1_builder.py::test_root_agent_runs_against_local_llm \
+            --deselect tests/test_p3_delegate.py::test_spawn_runs_real_child \
+            --deselect tests/test_p9_social.py::test_analyst_stage_runs_live \
+            --deselect tests/test_p18_subagent_stream.py::test_stream_child_emits_nested_events \
+            --deselect tests/test_p18_subagent_stream.py::test_spawn_falls_back_to_run_once_without_sink
+
+  web-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"

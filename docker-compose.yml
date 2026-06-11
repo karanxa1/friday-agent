@@ -1,0 +1,28 @@
+# Friday — single-host deploy (backend + web). Used by the CD workflow and
+# manual deploys. friday.env is generated at deploy time (gitignored, secrets).
+services:
+  backend:
+    build: ./friday
+    env_file: ./friday.env
+    environment:
+      - PORT=8080
+      - FRIDAY_BROWSER_HEADLESS=1
+    volumes:
+      - friday-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  web:
+    build: ./web
+    environment:
+      - FRIDAY_API=http://backend:8080
+    ports:
+      - "80:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  friday-data:

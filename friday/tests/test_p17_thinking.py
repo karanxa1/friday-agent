@@ -12,7 +12,27 @@ from __future__ import annotations
 import pytest
 
 
-def test_make_llm_enables_thinking_passthrough():
+@pytest.fixture
+def anthropic_provider(monkeypatch):
+    """Pin the Anthropic-protocol provider for thinking-passthrough assertions.
+
+    Thinking budget + ``-thinking`` model variants are Anthropic-specific; the
+    Vertex/Gemini path deliberately omits them. These tests therefore force the
+    anthropic provider regardless of the ambient .env (which may select vertex).
+    """
+    from core import model as model_mod
+    from core.config import Settings
+
+    monkeypatch.setenv("FRIDAY_LLM_PROVIDER", "anthropic")
+    monkeypatch.setenv("FRIDAY_MODEL_HARD", "claude-opus-4-8")
+    monkeypatch.setenv("FRIDAY_MODEL_EASY", "claude-sonnet-4-6")
+    monkeypatch.setattr(model_mod, "settings", Settings())
+    model_mod._make_llm_cached.cache_clear()
+    yield
+    model_mod._make_llm_cached.cache_clear()
+
+
+def test_make_llm_enables_thinking_passthrough(anthropic_provider):
     from core.model import make_llm
 
     llm = make_llm("hard", thinking=True)
@@ -34,7 +54,7 @@ def test_make_llm_thinking_off_omits_param():
     assert "thinking" not in llm._additional_args
 
 
-def test_make_llm_thinking_uses_thinking_model_variant():
+def test_make_llm_thinking_uses_thinking_model_variant(anthropic_provider):
     from core.model import make_llm
 
     llm = make_llm("hard", thinking=True)

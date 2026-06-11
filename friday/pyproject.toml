@@ -21,7 +21,7 @@ dependencies = [
     "playwright>=1.50",
     "pyautogui>=0.9.54",
     "markdown>=3.5",
-    "xhtml2pdf>=0.2.16",
+    "fpdf2>=2.7",
 ]
 
 [project.optional-dependencies]

@@ -107,24 +107,55 @@ def make_pdf(content: str, filename: str = "document.pdf", title: str = "") -> s
         name += ".pdf"
     try:
         import markdown as _md
-        from xhtml2pdf import pisa
+        from fpdf import FPDF
     except Exception as exc:  # noqa: BLE001
         return f"error: PDF libraries not installed ({exc})"
     html_body = _md.markdown(content, extensions=["tables", "fenced_code", "sane_lists"])
-    head = (
-        "<html><head><meta charset='utf-8'><style>"
-        "body{font-family:Helvetica,Arial,sans-serif;font-size:11pt;line-height:1.45;color:#1a1a1a;}"
-        "h1,h2,h3{color:#111;margin:0.6em 0 0.3em;} code,pre{font-family:Courier,monospace;background:#f4f4f4;}"
-        "pre{padding:8px;border-radius:4px;} table{border-collapse:collapse;margin:6px 0;}"
-        "td,th{border:1px solid #bbb;padding:4px 8px;}"
-        "</style></head><body>"
+
+    # Prefer a full Unicode font family (regular+bold+italic) so write_html's
+    # <b>/<i> work AND non-Latin glyphs render. DejaVu ships in the container /
+    # CI runner. Without it, use the built-in Latin-1 helvetica and sanitize.
+    fontdir = next(
+        (d for d in ("/usr/share/fonts/truetype/dejavu",)
+         if os.path.exists(os.path.join(d, "DejaVuSans.ttf"))),
+        None,
     )
-    html = head + (f"<h1>{title}</h1>" if title else "") + html_body + "</body></html>"
+
+    def _build(use_unicode: bool) -> "FPDF":
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        if use_unicode:
+            pdf.add_font("uni", "", os.path.join(fontdir, "DejaVuSans.ttf"))
+            for style, fn in (("B", "DejaVuSans-Bold.ttf"),
+                              ("I", "DejaVuSans-Oblique.ttf"),
+                              ("BI", "DejaVuSans-BoldOblique.ttf")):
+                fp = os.path.join(fontdir, fn)
+                if os.path.exists(fp):
+                    pdf.add_font("uni", style, fp)
+            base, body = "uni", html_body
+        else:
+            base = "helvetica"
+            body = html_body.encode("latin-1", "replace").decode("latin-1")
+        if title:
+            pdf.set_font(base, "B", 18)
+            pdf.multi_cell(0, 10, title if use_unicode
+                           else title.encode("latin-1", "replace").decode("latin-1"))
+            pdf.ln(2)
+        pdf.set_font(base, "", 11)
+        pdf.write_html(body)
+        return pdf
+
     out_path = _dir() / name
-    with open(out_path, "wb") as fh:
-        result = pisa.CreatePDF(html, dest=fh)
-    if result.err:
-        return "error: PDF generation failed"
+    try:
+        pdf = _build(bool(fontdir))
+    except Exception:  # noqa: BLE001 — last resort: plain text
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        pdf.set_font("helvetica", size=11)
+        pdf.multi_cell(0, 6, content.encode("latin-1", "replace").decode("latin-1"))
+    pdf.output(str(out_path))
     audit.log("artifacts.make_pdf", filename=name, bytes=out_path.stat().st_size)
     return f"PDF created — open it here: {_link(name)}"
 

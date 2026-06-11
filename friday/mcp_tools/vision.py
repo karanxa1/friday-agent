@@ -89,40 +89,40 @@ def analyze_image(image_path: str, question: str = "Describe this image in detai
         return f"error: {image_path!r} is not a readable image file"
     media, data = enc
 
-    body = {
-        "model": _VISION_MODEL,
-        "max_tokens": 1024,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "source": {"type": "base64", "media_type": media, "data": data}},
-                    {"type": "text", "text": question},
-                ],
-            }
-        ],
-    }
-    try:
-        resp = httpx.post(
-            f"{settings.llm_base_url.rstrip('/')}/v1/messages",
-            headers={
-                "x-api-key": settings.llm_api_key,
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json",
-            },
-            json=body,
-            timeout=60.0,
-        )
-    except httpx.HTTPError as exc:
-        return f"error: vision request failed: {exc}"
+    # Route through litellm using the active provider (gemini / vertex /
+    # anthropic) so vision works wherever the model lives — Gemini and Claude
+    # are both multimodal. Image is passed as a base64 data URL.
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": question},
+                {"type": "image_url", "image_url": {"url": f"data:{media};base64,{data}"}},
+            ],
+        }
+    ]
+    provider = settings.llm_provider
+    model_id = settings.model_easy
+    kwargs: dict = {"max_tokens": 1024}
+    if provider == "gemini":
+        kwargs["model"] = model_id if "/" in model_id else f"gemini/{model_id}"
+        kwargs["api_key"] = settings.gemini_api_key
+    elif provider == "vertex":
+        kwargs["model"] = model_id if "/" in model_id else f"vertex_ai/{model_id}"
+        kwargs["vertex_location"] = settings.vertex_location or "global"
+        if settings.vertex_project:
+            kwargs["vertex_project"] = settings.vertex_project
+    else:  # anthropic-protocol endpoint
+        kwargs["model"] = model_id if "/" in model_id else f"anthropic/{model_id}"
+        kwargs["api_base"] = settings.llm_base_url
+        kwargs["api_key"] = settings.llm_api_key
 
-    if resp.status_code != 200:
-        return f"error: vision endpoint returned {resp.status_code}: {resp.text[:300]}"
     try:
-        out = resp.json()
-        parts = out.get("content", [])
-        text = "".join(b.get("text", "") for b in parts if b.get("type") == "text")
-        audit.log("tool.analyze_image", path=str(p), chars=len(text))
-        return text or "(no text returned)"
-    except (ValueError, KeyError) as exc:
-        return f"error parsing vision response: {exc}"
+        import litellm
+
+        resp = litellm.completion(messages=messages, **kwargs)
+        text = resp.choices[0].message.content or ""
+    except Exception as exc:  # noqa: BLE001
+        return f"error: vision request failed: {exc}"
+    audit.log("tool.analyze_image", path=str(p), chars=len(text))
+    return text or "(no text returned)"

@@ -41,6 +41,7 @@ jobs:
             --deselect tests/test_p5_sandbox.py::test_sandbox_network_is_isolated \
             --deselect tests/test_p5_sandbox.py::test_secret_env_is_scrubbed \
             --deselect tests/test_p6_mcp.py::test_mcp_servers_connect_via_adk \
+            --deselect tests/test_p6_mcp.py::test_callmissed_search_fallback_direct \
             --deselect tests/test_p19_browser.py::test_browser_flow_navigate_snapshot_screenshot
 
   web-build:

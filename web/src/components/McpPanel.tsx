@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Plug, CheckCircle2, KeyRound, Loader2 } from "lucide-react";
+import { Plus, Trash2, Plug, CheckCircle2, KeyRound, Loader2 } from "@/components/icons";
 import { deleteJSON, getJSON, postJSON } from "@/lib/api";
 
 type McpServer = {

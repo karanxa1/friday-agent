@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Archive } from "lucide-react";
+import { Archive } from "@/components/icons";
 
 /**
  * A compact inline marker shown where the conversation history was summarized

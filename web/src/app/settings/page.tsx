@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Brain, Shield } from "lucide-react";
+import { Brain, Shield } from "@/components/icons";
 import clsx from "clsx";
 import { PageShell } from "@/components/AppNav";
 import { getJSON, postJSON } from "@/lib/api";

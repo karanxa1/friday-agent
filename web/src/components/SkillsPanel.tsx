@@ -14,7 +14,7 @@ import {
   Trash2,
   User,
   X,
-} from "lucide-react";
+} from "@/components/icons";
 import clsx from "clsx";
 import { deleteJSON, getJSON, postJSON, putJSON } from "@/lib/api";
 import type { SkillInfo } from "@/lib/types";

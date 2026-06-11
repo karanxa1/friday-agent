@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUp, Brain, ChevronDown, FileText, ImageIcon, Paperclip, Square, X } from "lucide-react";
+import { ArrowUp, Brain, ChevronDown, FileText, ImageIcon, Paperclip, Square, X } from "@/components/icons";
 import clsx from "clsx";
 
 const AGENTS = ["root", "trend_scout", "content_studio", "analyst", "publisher", "ad_manager"];

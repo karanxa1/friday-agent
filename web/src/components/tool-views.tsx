@@ -16,7 +16,7 @@ import {
   Network,
   Wrench,
   XCircle,
-} from "lucide-react";
+} from "@/components/icons";
 import clsx from "clsx";
 import { getJSON } from "@/lib/api";
 import { auditRowKey, type AuditEvent, type ToolCard } from "@/lib/types";

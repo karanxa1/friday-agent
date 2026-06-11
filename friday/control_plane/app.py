@@ -143,6 +143,39 @@ async def api_run(req: RunReq):
     return {"goal": req.goal, "output": out}
 
 
+# --- Background autonomous tasks (Manus-style) ------------------------------
+class TaskReq(BaseModel):
+    goal: str
+
+
+@app.post("/api/tasks")
+async def api_task_submit(req: TaskReq):
+    """Launch a goal that runs autonomously in the background (survives disconnect)."""
+    from core import tasks
+
+    try:
+        return tasks.submit(req.goal)
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+
+@app.get("/api/tasks")
+async def api_tasks_list():
+    from core import tasks
+
+    return {"tasks": tasks.list_tasks()}
+
+
+@app.get("/api/tasks/{task_id}")
+async def api_task_get(task_id: str):
+    from core import tasks
+
+    t = tasks.get_task(task_id)
+    if t is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return t
+
+
 @app.post("/api/chat/stream")
 async def api_chat_stream(req: RunReq):
     """Stream a root-agent run as SSE: tokens, tool calls, tool results, done."""

@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy } from "@/components/icons";
 import clsx from "clsx";
 
 /**

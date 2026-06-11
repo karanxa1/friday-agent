@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Brain, History, MessageSquare, Server, Settings } from "lucide-react";
+import { BookOpen, Bot, Brain, FridayMark, History, MessageSquare, Server, Settings } from "@/components/icons";
 import clsx from "clsx";
 
 const LINKS = [
   { href: "/", label: "Chat", icon: MessageSquare },
+  { href: "/tasks", label: "Tasks", icon: Bot },
   { href: "/skills", label: "Skills", icon: BookOpen },
   { href: "/memory", label: "Memory", icon: Brain },
   { href: "/activity", label: "Activity", icon: History },
@@ -42,8 +43,9 @@ export function PageShell({ title, children }: { title: string; children: React.
   return (
     <div className="flex h-screen flex-col bg-panel">
       <header className="flex h-12 shrink-0 items-center gap-3 border-b border-edge-subtle px-4">
-        <Link href="/" className="text-[15px] font-semibold text-accent">
-          ☤ Friday
+        <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold text-accent">
+          <FridayMark className="h-5 w-5" />
+          Friday
         </Link>
         <AppNav />
       </header>

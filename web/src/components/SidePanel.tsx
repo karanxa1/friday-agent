@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, X, ShieldAlert } from "lucide-react";
+import { Check, X, ShieldAlert } from "@/components/icons";
 import clsx from "clsx";
 import { getJSON, postJSON } from "@/lib/api";
 import { auditRowKey, type AuditEvent, type PendingApproval } from "@/lib/types";

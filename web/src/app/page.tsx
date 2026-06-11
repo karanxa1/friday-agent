@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, Laptop, Menu, PanelRight } from "lucide-react";
+import { ChevronDown, Laptop, Menu, PanelRight } from "@/components/icons";
 import clsx from "clsx";
 import { Composer, type Attachment } from "@/components/Composer";
 import { Message } from "@/components/Message";
@@ -396,7 +396,7 @@ export default function Home() {
             title="Menu"
             className="flex h-8 w-8 items-center justify-center rounded-md text-ink-muted hover:bg-panel-hover hover:text-ink lg:hidden"
           >
-            <Menu className="h-4.5 w-4.5" />
+            <Menu className="h-4 w-4" />
           </button>
           {!empty && (
             <span className="min-w-0 truncate text-[13.5px] font-medium text-ink-secondary">

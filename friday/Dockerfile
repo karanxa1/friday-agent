@@ -9,7 +9,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 # System deps: git (self-dev commits), build basics.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ca-certificates fonts-dejavu-core \
+        git ca-certificates fonts-dejavu-core xvfb x11-utils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -33,8 +33,13 @@ RUN mkdir -p /data/.friday
 ENV PORT=8080
 EXPOSE 8080
 
+# Virtual display so the computer-use toolset (screenshots, mouse, keyboard via
+# pyautogui) and GUI apps work in this headless container — the agent's "screen".
+ENV DISPLAY=:99
+
 # Initialize a git repo so self-dev git_snapshot works in-container.
 RUN git init -q && git config user.email "friday@local" && git config user.name "Friday" \
     && git add -A && git commit -q -m "container baseline" || true
 
-CMD ["sh", "-c", "uvicorn control_plane.app:app --host 0.0.0.0 --port ${PORT}"]
+# Start a virtual framebuffer on :99, then the API. (-ac allows local clients.)
+CMD ["sh", "-c", "Xvfb :99 -screen 0 1440x900x24 -ac >/tmp/xvfb.log 2>&1 & exec uvicorn control_plane.app:app --host 0.0.0.0 --port ${PORT}"]

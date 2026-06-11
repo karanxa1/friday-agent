@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Brain, Loader2, Check } from "lucide-react";
+import { ChevronDown, Brain, Loader2, Check } from "@/components/icons";
 import clsx from "clsx";
 
 export function ThinkingBlock({ text, done }: { text: string; done: boolean }) {

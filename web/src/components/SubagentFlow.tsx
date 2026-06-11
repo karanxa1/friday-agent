@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Bot, Loader2, Check } from "lucide-react";
+import { ChevronDown, Bot, Loader2, Check } from "@/components/icons";
 import clsx from "clsx";
 import type { Subagent } from "@/lib/types";
 import { BlockStream } from "./BlockStream";

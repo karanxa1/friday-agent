@@ -27,11 +27,11 @@ import {
   Download,
   ListTodo,
   History,
-  Image as ImageIcon,
+  ImageIcon,
   MousePointerClick,
   Camera,
   Monitor,
-} from "lucide-react";
+} from "@/components/icons";
 import clsx from "clsx";
 import type { ToolCard as ToolCardType } from "@/lib/types";
 import { ArgsPreviewPane, diffStat, kindFor, MediaView, viewFor } from "./tool-views";

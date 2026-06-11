@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -230,8 +231,11 @@ def _mcp_connection_params(
         if transport == "sse":
             return SseConnectionParams(url=url, headers=headers or None)
         return StreamableHTTPConnectionParams(url=url, headers=headers or None)
+    command = str(spec.get("command") or sys.executable)
+    if command in ("python", "python3"):
+        command = sys.executable
     params = StdioServerParameters(
-        command=spec["command"],
+        command=command,
         args=spec.get("args", []),
         env=merged_env,
     )

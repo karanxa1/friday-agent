@@ -6,7 +6,22 @@ import { PageShell } from "@/components/AppNav";
 import { getJSON } from "@/lib/api";
 import { auditRowKey, type AuditEvent } from "@/lib/types";
 
-const FILTERS = ["all", "run.", "stream.", "skill.", "files.", "web.", "todo.", "spawn.", "config."];
+const FILTERS = [
+  "all",
+  "run.",
+  "stream.",
+  "skill.",
+  "files.",
+  "web.",
+  "browser.",
+  "artifacts.",
+  "todo.",
+  "spawn.",
+  "task.",
+  "automation.",
+  "approval.",
+  "config.",
+];
 
 export default function ActivityPage() {
   const [events, setEvents] = useState<AuditEvent[]>([]);

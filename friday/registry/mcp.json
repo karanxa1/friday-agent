@@ -1,7 +1,7 @@
 {
   "servers": {
     "callmissed_search": {
-      "command": "/Users/macbook/hack-agent/friday/.venv/bin/python",
+      "command": "python",
       "args": [
         "-m",
         "mcp_tools.callmissed_search_server"
@@ -10,7 +10,7 @@
       "description": "CallMissed web search (real). Set CALLMISSED_API_KEY for live results."
     },
     "metrics": {
-      "command": "/Users/macbook/hack-agent/friday/.venv/bin/python",
+      "command": "python",
       "args": [
         "-m",
         "mcp_tools.metrics_server"
@@ -19,7 +19,7 @@
       "description": "Mock performance metrics from data/seed_metrics.json."
     },
     "yourmemory": {
-      "command": "/Users/macbook/.local/bin/yourmemory",
+      "command": "yourmemory",
       "args": [],
       "env": {},
       "description": "External self-learning memory MCP (duckdb + graph). Optional."

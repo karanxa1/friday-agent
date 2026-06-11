@@ -141,7 +141,8 @@ flowchart TB
 | `GET /api/memory` | MEMORY.md + USER.md snapshot |
 | `GET/POST /api/mcp` | MCP server registry |
 | `POST /api/credentials` | Vault writes (never echoed to model) |
-| `GET/POST /api/config` | Thinking, autonomy L0–L2, model display |
+| `GET/POST /api/tasks` | Background task queue |
+| `GET/POST /api/config` | Thinking, autonomy L0–L3, model display |
 | `GET /api/files/*` | Read-only artifact hosting |
 
 Optional `FRIDAY_API_TOKEN` → Bearer auth on all `/api/*` except health.
@@ -170,7 +171,7 @@ flowchart TB
 
   MCP --> Callmissed[callmissed_search]
   MCP --> Metrics[metrics mock]
-  MCP --> HF[huggingface / higgsfield / yourmemory]
+  MCP --> HF[huggingface / yourmemory optional]
 
   subgraph social [domains/social_media]
     Scout[trend_scout]
@@ -231,6 +232,7 @@ flowchart TB
     SkillsPage["/skills"]
     MemoryPage["/memory"]
     ActivityPage["/activity"]
+    TasksPage["/tasks"]
     MCPPage["/mcp"]
     SettingsPage["/settings"]
   end
@@ -291,7 +293,8 @@ flowchart LR
 |----------|----------|
 | L0 | Ask everything sensitive |
 | L1 | Balanced — publish, self-edit, spend gated |
-| L2 | Maximum autonomy (still auditable) |
+| L2 | Whitelisted actions auto-approve; sensitive actions still gated |
+| L3 | Full auto — no approval queue (single-user locked hosts only) |
 
 Secrets are scrubbed from audit logs; vault values never enter model context.
 

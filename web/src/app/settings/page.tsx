@@ -10,7 +10,8 @@ import type { AppConfig } from "@/lib/types";
 const AUTONOMY_LEVELS: { value: string; label: string; desc: string }[] = [
   { value: "L0", label: "L0 — Ask everything", desc: "Every sensitive action waits for approval." },
   { value: "L1", label: "L1 — Balanced", desc: "Gated actions (publish, self-edit, spend) wait; the rest runs free." },
-  { value: "L2", label: "L2 — Autonomous", desc: "Maximum autonomy; use with care." },
+  { value: "L2", label: "L2 — Autonomous", desc: "Whitelisted actions auto-approve; sensitive actions still gated." },
+  { value: "L3", label: "L3 — Full auto", desc: "No approval queue — single-user, network-locked hosts only." },
 ];
 
 export default function SettingsPage() {

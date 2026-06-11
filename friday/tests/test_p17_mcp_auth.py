@@ -83,6 +83,47 @@ def test_extract_media_images_and_html():
     assert _extract_media({"result": json.dumps({"content": [{"type": "text", "text": "x"}]})}) is None
 
 
+def test_extract_media_uri_list():
+    """MCP-UI text/uri-list UIResources surface as external app URLs (iframe src)."""
+    from control_plane.streaming import _extract_media
+
+    # URL in the resource text (with a comment line ignored)
+    via_text = _extract_media(
+        {
+            "content": [
+                {
+                    "type": "resource",
+                    "resource": {
+                        "mimeType": "text/uri-list",
+                        "text": "# an interactive Space\nhttps://my-space.hf.space/",
+                    },
+                }
+            ]
+        }
+    )
+    assert via_text == {"images": [], "html": [], "uris": ["https://my-space.hf.space/"]}
+
+    # URL carried on the resource uri field instead of text
+    via_uri = _extract_media(
+        {
+            "content": [
+                {
+                    "type": "resource",
+                    "resource": {"mimeType": "text/uri-list", "uri": "https://example.com/app"},
+                }
+            ]
+        }
+    )
+    assert via_uri["uris"] == ["https://example.com/app"]
+    # non-http schemes are not rendered as iframes
+    assert (
+        _extract_media(
+            {"content": [{"type": "resource", "resource": {"mimeType": "text/uri-list", "text": "ftp://x"}}]}
+        )
+        is None
+    )
+
+
 def test_manage_tools_register_and_attach_roundtrip(monkeypatch, tmp_path):
     monkeypatch.setenv("FRIDAY_HOME", str(tmp_path))
     reg = tmp_path / "registry"

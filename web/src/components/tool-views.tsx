@@ -76,6 +76,47 @@ function NumberedLine({
   );
 }
 
+/**
+ * Live "typewriter" reveal for file edits. Gemini ships a tool call's whole
+ * argument in one chunk (so the backend tee can't stream it character by
+ * character), which made edits pop in fully-formed. This reveals the new lines
+ * progressively the first time the card renders while still running — so you
+ * watch the file being written, Cursor/Manus-style. Historical cards (loaded
+ * already "done") show everything immediately and never replay.
+ */
+function useReveal(total: number, animate: boolean): number {
+  const [shown, setShown] = useState(() => (animate ? 0 : total));
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    if (!animate || total <= 0) {
+      setShown(total);
+      return;
+    }
+    const perTick = Math.max(1, Math.ceil(total / 60)); // ~ up to 1.4s for big files
+    let n = 0;
+    const iv = setInterval(() => {
+      n += perTick;
+      setShown(Math.min(n, total));
+      if (n >= total) clearInterval(iv);
+    }, 24);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return Math.min(shown, total);
+}
+
+function RevealCaret() {
+  return (
+    <div className="flex whitespace-pre px-0 text-state-run">
+      <span className="w-11 shrink-0 pr-2" />
+      <span className="w-4 shrink-0 text-center">▍</span>
+      <span className="animate-caret">writing…</span>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ diff */
 
 export type DiffStat = { added: number; removed: number };
@@ -114,6 +155,8 @@ export function diffStat(card: ToolCard): DiffStat | null {
 
 export function DiffView({ card }: { card: ToolCard }) {
   const d = lineDiff(str(card.args.old), str(card.args.new));
+  const shownAdded = useReveal(d.added.length, card.status === "running");
+  const revealing = shownAdded < d.added.length;
   let i = 0;
   let ln = Math.max(1, d.preLine - d.context.length + 1);
   return (
@@ -124,10 +167,11 @@ export function DiffView({ card }: { card: ToolCard }) {
       {d.removed.map((t, k) => (
         <NumberedLine key={`r${k}`} index={i++} n={d.preLine + k + 1} text={t} tone="rm" />
       ))}
-      {d.added.map((t, k) => (
+      {d.added.slice(0, shownAdded).map((t, k) => (
         <NumberedLine key={`a${k}`} index={i++} n={d.preLine + k + 1} text={t} tone="add" />
       ))}
-      {card.result && <ResultNote result={card.result} ok={card.status !== "error"} />}
+      {revealing && <RevealCaret />}
+      {!revealing && card.result && <ResultNote result={card.result} ok={card.status !== "error"} />}
     </MonoPane>
   );
 }
@@ -137,12 +181,15 @@ export function DiffView({ card }: { card: ToolCard }) {
 export function FileWriteView({ card }: { card: ToolCard }) {
   const content = str(card.args.content || card.args.function_code || card.args.server_code);
   const lines = content.split("\n").slice(0, 400);
+  const shown = useReveal(lines.length, card.status === "running");
+  const revealing = shown < lines.length;
   return (
     <MonoPane className="py-1">
-      {lines.map((t, k) => (
+      {lines.slice(0, shown).map((t, k) => (
         <NumberedLine key={k} index={k} n={k + 1} text={t} tone="add" />
       ))}
-      {card.result && <ResultNote result={card.result} ok={card.status !== "error"} />}
+      {revealing && <RevealCaret />}
+      {!revealing && card.result && <ResultNote result={card.result} ok={card.status !== "error"} />}
     </MonoPane>
   );
 }
@@ -636,7 +683,8 @@ export function BrowserView({ card }: { card: ToolCard }) {
  *  sandboxed iframe (scripts allowed, no same-origin/top-navigation access). */
 export function MediaView({ card }: { card: ToolCard }) {
   const m = card.media;
-  if (!m || (m.images.length === 0 && m.html.length === 0)) return null;
+  const uris = m?.uris ?? [];
+  if (!m || (m.images.length === 0 && m.html.length === 0 && uris.length === 0)) return null;
   return (
     <div className="flex flex-col gap-2 border-t border-edge-subtle bg-panel-sidebar px-3 py-2.5">
       {m.images.map((img, i) => (
@@ -656,6 +704,24 @@ export function MediaView({ card }: { card: ToolCard }) {
           title={`${card.name} interactive output ${i + 1}`}
           className="h-[360px] w-full rounded-lg border border-edge-subtle bg-white"
         />
+      ))}
+      {uris.map((uri, i) => (
+        <div key={`uri${i}`} className="flex flex-col gap-1">
+          <iframe
+            src={uri}
+            sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+            title={`${card.name} interactive app ${i + 1}`}
+            className="h-[440px] w-full rounded-lg border border-edge-subtle bg-white"
+          />
+          <a
+            href={uri}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 self-end text-[11.5px] text-accent hover:underline"
+          >
+            <ExternalLink className="h-3 w-3" /> open app in new tab
+          </a>
+        </div>
       ))}
     </div>
   );

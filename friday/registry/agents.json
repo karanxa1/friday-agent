@@ -31,7 +31,8 @@
         "yourmemory",
         "metrics",
         "callmissed_search",
-        "higgsfield"
+        "higgsfield",
+        "huggingface"
       ]
     }
   }

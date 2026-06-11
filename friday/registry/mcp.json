@@ -23,6 +23,17 @@
       "args": [],
       "env": {},
       "description": "External self-learning memory MCP (duckdb + graph). Optional."
+    },
+    "huggingface": {
+      "transport": "http",
+      "url": "https://huggingface.co/mcp",
+      "headers": {
+        "Authorization": "Bearer ${HF_TOKEN}"
+      },
+      "requires": [
+        "HF_TOKEN"
+      ],
+      "description": "Hugging Face MCP (remote/interactive): search models, datasets & Spaces and call Gradio/Space tools; results can render as interactive UI. Set HF_TOKEN to attach."
     }
   }
 }

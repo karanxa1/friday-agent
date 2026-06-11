@@ -145,7 +145,12 @@ def _build_mcp_toolsets(server_names: list[str]) -> list[Any]:
     if not server_names:
         return []
     try:
-        from google.adk.tools.mcp_tool import MCPToolset, StdioConnectionParams
+        from google.adk.tools.mcp_tool import (
+            MCPToolset,
+            SseConnectionParams,
+            StdioConnectionParams,
+            StreamableHTTPConnectionParams,
+        )
         from mcp import StdioServerParameters
     except Exception as exc:  # noqa: BLE001
         audit.log("builder.mcp_unavailable", error=str(exc))
@@ -166,18 +171,71 @@ def _build_mcp_toolsets(server_names: list[str]) -> list[Any]:
             audit.log("builder.mcp_needs_auth", server=name, missing=",".join(missing))
             continue
         try:
-            params = StdioServerParameters(
-                command=spec["command"],
-                args=spec.get("args", []),
-                env=merged_env,
+            conn = _mcp_connection_params(
+                spec,
+                merged_env,
+                StdioServerParameters=StdioServerParameters,
+                StdioConnectionParams=StdioConnectionParams,
+                SseConnectionParams=SseConnectionParams,
+                StreamableHTTPConnectionParams=StreamableHTTPConnectionParams,
             )
-            ts = MCPToolset(connection_params=StdioConnectionParams(server_params=params))
+            ts = MCPToolset(connection_params=conn)
             toolsets.append(ts)
             _mcp_toolsets.append(ts)
-            audit.log("builder.mcp_attached", server=name)
+            audit.log("builder.mcp_attached", server=name, transport=_mcp_transport(spec))
         except Exception as exc:  # noqa: BLE001
             audit.log("builder.mcp_attach_error", server=name, error=str(exc))
     return toolsets
+
+
+def _mcp_transport(spec: dict[str, Any]) -> str:
+    """Resolve a server's transport: explicit ``transport``, else inferred from
+    the presence of a ``url`` (remote) vs ``command`` (local stdio)."""
+    t = str(spec.get("transport") or "").lower().replace("-", "_")
+    if t:
+        return "streamable_http" if t in ("http", "streamable_http", "streamablehttp") else t
+    return "streamable_http" if spec.get("url") else "stdio"
+
+
+def _subst_env(value: str, env: dict[str, str]) -> str:
+    """Expand ``${VAR}`` references in a header/value from the resolved env so
+    auth tokens (e.g. ``Authorization: Bearer ${HF_TOKEN}``) stay out of the
+    committed registry and come from the vault/process env at attach time."""
+    import re as _re
+
+    return _re.sub(r"\$\{(\w+)\}", lambda m: env.get(m.group(1), ""), value)
+
+
+def _mcp_connection_params(
+    spec: dict[str, Any],
+    merged_env: dict[str, str],
+    *,
+    StdioServerParameters: Any,
+    StdioConnectionParams: Any,
+    SseConnectionParams: Any,
+    StreamableHTTPConnectionParams: Any,
+) -> Any:
+    """Build the right ADK connection params for a server spec.
+
+    Local servers (``command``) use stdio. Remote/interactive servers (Hugging
+    Face, Gradio Spaces, MCP-UI apps) declare a ``url`` and optional
+    ``transport`` ("sse" | "http") plus ``headers`` with ``${ENV}`` placeholders
+    resolved from the vault/env. This is what lets the agent attach the
+    interactive MCP servers whose tools return UIResources.
+    """
+    transport = _mcp_transport(spec)
+    if transport in ("sse", "streamable_http"):
+        url = str(spec["url"])
+        headers = {k: _subst_env(str(v), merged_env) for k, v in (spec.get("headers") or {}).items()}
+        if transport == "sse":
+            return SseConnectionParams(url=url, headers=headers or None)
+        return StreamableHTTPConnectionParams(url=url, headers=headers or None)
+    params = StdioServerParameters(
+        command=spec["command"],
+        args=spec.get("args", []),
+        env=merged_env,
+    )
+    return StdioConnectionParams(server_params=params)
 
 
 def build_agent(agent_name: str = "root") -> LlmAgent:

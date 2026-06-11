@@ -109,6 +109,23 @@ _SUBAGENT_SINK: contextvars.ContextVar[asyncio.Queue | None] = contextvars.Conte
 _CURRENT_DEPTH: contextvars.ContextVar[int] = contextvars.ContextVar("stream_depth", default=0)
 
 
+# File-editing tools whose args the UI reveals itself (see frontend DiffView /
+# FileWriteView typewriter). Kept out of the tee so the live preview is the
+# formatted diff, not a raw-JSON dump.
+_EDITOR_TOOLS = frozenset(
+    {
+        "write_file",
+        "edit_file",
+        "write_self",
+        "edit_self",
+        "patch",
+        "skill_create",
+        "skill_edit",
+        "skill_patch",
+    }
+)
+
+
 def _install_litellm_tee() -> None:
     """Wrap ``litellm.acompletion`` once so streamed tool-call argument
     fragments are routed to the current stream's queue without disturbing ADK."""
@@ -143,6 +160,13 @@ def _install_litellm_tee() -> None:
                         frag = getattr(fn, "arguments", None)
                         tool = names.get(idx)
                         if not (tool and frag):
+                            continue
+                        # File-editor tools render their own live line-by-line
+                        # reveal in the UI from the final args. Streaming the raw
+                        # args JSON too would flash an unformatted dump first
+                        # (and Gemini ships the whole arg in one chunk anyway),
+                        # so skip the tee for them.
+                        if tool in _EDITOR_TOOLS:
                             continue
                         payload = {"name": tool, "delta": str(frag)[:4000]}
                         # Child tool-args ride the sub-agent sink (in order with
@@ -713,7 +737,7 @@ def _media_from_paths(result_text: str) -> dict[str, Any] | None:
             images.append({"mime": mime, "data": base64.b64encode(p.read_bytes()).decode("ascii")})
         except (OSError, ValueError):
             continue
-    return {"images": images, "html": []} if images else None
+    return {"images": images, "html": [], "uris": []} if images else None
 
 
 def _extract_media(resp: Any) -> dict[str, Any] | None:
@@ -740,6 +764,7 @@ def _extract_media(resp: Any) -> dict[str, Any] | None:
 
     images: list[dict[str, str]] = []
     html: list[str] = []
+    uris: list[str] = []
     for item in content:
         if not isinstance(item, dict):
             continue
@@ -747,11 +772,25 @@ def _extract_media(resp: Any) -> dict[str, Any] | None:
             if len(images) < _MAX_MEDIA_ITEMS and len(str(item["data"])) <= _MAX_IMAGE_B64:
                 images.append({"mime": str(item.get("mimeType") or "image/png"), "data": str(item["data"])})
         elif item.get("type") == "resource":
+            # MCP-UI / MCP Apps UIResource: inline HTML renders in a sandboxed
+            # iframe srcDoc; a text/uri-list points at an external app URL that
+            # loads via the iframe src (Hugging Face Spaces, Gradio, etc.).
             res = item.get("resource") or {}
             mime = str(res.get("mimeType") or "")
             text = res.get("text")
             if mime == "text/html" and text and len(html) < _MAX_MEDIA_ITEMS:
                 html.append(str(text)[:_MAX_HTML_CHARS])
-    if not images and not html:
+            elif mime == "text/uri-list" and text and len(uris) < _MAX_MEDIA_ITEMS:
+                for line in str(text).splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#") and line[:6].lower() in ("http:/", "https:"):
+                        uris.append(line[:2000])
+                        break
+            elif mime == "text/uri-list" and not text:
+                # Some servers carry the URL on the resource ``uri`` field.
+                uri = str(res.get("uri") or "")
+                if uri[:4].lower() == "http" and len(uris) < _MAX_MEDIA_ITEMS:
+                    uris.append(uri[:2000])
+    if not images and not html and not uris:
         return None
-    return {"images": images, "html": html}
+    return {"images": images, "html": html, "uris": uris}

@@ -51,6 +51,8 @@ export type StreamEvent =
 export type ToolMedia = {
   images: { mime: string; data: string }[];
   html: string[];
+  /** External app URLs from MCP-UI `text/uri-list` resources (iframe src). */
+  uris?: string[];
 };
 
 export type ToolCard = {

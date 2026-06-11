@@ -62,6 +62,34 @@ def test_browser_navigate_requires_url():
     assert "url is required" in asyncio.run(browser_navigate(""))
 
 
+def test_resolve_local_artifact(monkeypatch, tmp_path):
+    """Local artifacts (file:// / /api/files / bare name) resolve to disk; the
+    box is IP-locked so its own public URL is unreachable from inside."""
+    monkeypatch.setenv("FRIDAY_HOME", str(tmp_path))
+    from core.config import settings
+    from friday_tools.browser import _resolve_local_artifact
+
+    object.__setattr__(settings, "public_url", "https://otpgod.com")
+    ad = settings.artifacts_dir
+    ad.mkdir(parents=True, exist_ok=True)
+    (ad / "page.html").write_text("<html></html>")
+    target = (ad / "page.html").resolve()
+
+    for ref in (
+        f"file://{target}",
+        "/api/files/page.html",
+        "https://otpgod.com/api/files/page.html",
+        "page.html",
+        "artifacts/page.html",
+    ):
+        assert _resolve_local_artifact(ref) == target, ref
+    # External and out-of-home references are NOT treated as local.
+    assert _resolve_local_artifact("https://example.com") is None
+    assert _resolve_local_artifact("example.com") is None
+    assert _resolve_local_artifact("file:///etc/passwd") is None
+    assert _resolve_local_artifact("/api/files/missing.html") is None
+
+
 def test_browser_flow_navigate_snapshot_screenshot():
     """End-to-end: open a real page, list elements, screenshot it, then close."""
     from friday_tools import browser as br

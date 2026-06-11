@@ -24,7 +24,9 @@ desktop viewport; downloads are not auto-accepted; JS dialogs are auto-dismissed
 from __future__ import annotations
 
 import asyncio
+import os
 import time
+from pathlib import Path
 from typing import Any
 
 from core import audit
@@ -141,27 +143,83 @@ def _url_guard(url: str) -> str | None:
     return _url_error(url)
 
 
+def _resolve_local_artifact(url: str) -> Path | None:
+    """Map a reference to a file the agent generated to a local path.
+
+    The box is IP-locked, so it can't reach its own public ``/api/files`` URL
+    from inside — and ``file://`` was being mangled into ``https://file://``.
+    This resolves ``file://…``, ``/api/files/<name>``, the absolute public URL
+    form, ``artifacts/<name>``, a bare artifact filename, or an absolute path —
+    but ONLY to files inside the agent home, so the agent can open its own
+    HTML/SVG/PDF straight from disk (no network). Returns None for anything
+    external or outside the home (those go through the normal http path)."""
+    s = (url or "").strip()
+    if not s:
+        return None
+    home = settings.home.resolve()
+    ad = settings.artifacts_dir.resolve()
+    cand: Path | None = None
+    if s.startswith("file://"):
+        from urllib.parse import unquote, urlparse
+
+        cand = Path(unquote(urlparse(s).path))
+    else:
+        prefixes = [
+            (settings.public_url.rstrip("/") + "/api/files/") if settings.public_url else "",
+            "/api/files/",
+            "artifacts/",
+        ]
+        for pref in prefixes:
+            if pref and s.startswith(pref):
+                cand = ad / os.path.basename(s[len(pref):])
+                break
+        if cand is None and "://" not in s:
+            p = Path(s)
+            if p.is_absolute():
+                cand = p
+            elif (ad / os.path.basename(s)).is_file():
+                cand = ad / os.path.basename(s)
+    if cand is None:
+        return None
+    try:
+        rp = cand.resolve()
+        rp.relative_to(home)  # only files inside the agent home
+    except (ValueError, OSError):
+        return None
+    return rp if rp.is_file() else None
+
+
 # ── tools ───────────────────────────────────────────────────────────────────
 
 
-@tool("browser", description="Open a URL in a real headless browser (renders JS) and return page text.")
+@tool("browser", description="Open a URL (or a local artifact you generated) in a real headless browser and return page text.")
 async def browser_navigate(url: str = "", max_chars: int = _MAX_TEXT) -> str:
     """Navigate the browser to ``url`` and return the page title + visible text.
 
     Use this for JS-heavy/interactive sites where ``fetch_url`` (HTTP only)
     falls short. The page stays open for follow-up clicks/typing/screenshots.
 
+    To preview an HTML/SVG file YOU generated, pass its artifact name, its
+    ``/api/files/<name>`` link, or a ``file://`` path — it opens straight from
+    disk (the host is IP-locked, so its own public URL is unreachable from
+    inside).
+
     Args:
-        url: http/https URL to open (private hosts refused).
+        url: http/https URL, or a local artifact (name / link / file://).
         max_chars: truncate returned page text to this many characters.
     """
     url = (url or "").strip()
     if not url:
         return "error: url is required"
-    if not url.startswith(("http://", "https://")):
-        url = "https://" + url
-    if err := _url_guard(url):
-        return err
+    # Local artifact? Open it from disk via file:// (no network round-trip).
+    local = _resolve_local_artifact(url)
+    if local is not None:
+        url = local.as_uri()
+    else:
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+        if err := _url_guard(url):
+            return err
     async with _lock:
         try:
             page = await _ensure_page()

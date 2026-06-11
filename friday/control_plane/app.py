@@ -98,6 +98,85 @@ def _secure_eq(a: str, b: str) -> bool:
 app.add_middleware(_TokenAuthMiddleware)
 
 
+# --- Access password gate ---------------------------------------------------
+# When FRIDAY_ACCESS_PASSWORD is set, the whole UI/API is locked behind a single
+# shared password. The frontend shows a password screen; POST /api/login issues
+# an HttpOnly cookie carrying a one-way token derived from the password (the
+# password itself is never stored in the cookie), and every other /api route
+# requires that cookie. Empty password = open (local dev).
+_ACCESS_PASSWORD = _settings.access_password
+_ACCESS_COOKIE = "friday_access"
+_GATE_EXEMPT = {"/api/health", "/api/login", "/api/auth", "/api/logout"}
+
+
+def _access_token() -> str:
+    """One-way token for the access cookie (can't be reversed to the password)."""
+    import hashlib
+
+    return hashlib.sha256(f"friday-access:{_ACCESS_PASSWORD}".encode()).hexdigest()
+
+
+def _has_access(request: Request) -> bool:
+    return _secure_eq(request.cookies.get(_ACCESS_COOKIE, ""), _access_token())
+
+
+class _PasswordGateMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if (
+            _ACCESS_PASSWORD
+            and request.method != "OPTIONS"
+            and request.url.path.startswith("/api/")
+            and request.url.path not in _GATE_EXEMPT
+            and not _has_access(request)
+        ):
+            return JSONResponse({"error": "locked", "auth_required": True}, status_code=401)
+        return await call_next(request)
+
+
+app.add_middleware(_PasswordGateMiddleware)
+
+
+class LoginReq(BaseModel):
+    password: str = ""
+
+
+@app.post("/api/login")
+async def login(req: LoginReq):
+    """Exchange the shared password for an access cookie."""
+    if not _ACCESS_PASSWORD:
+        return {"ok": True, "required": False}
+    if not _secure_eq(req.password.strip(), _ACCESS_PASSWORD):
+        return JSONResponse({"ok": False, "error": "wrong password"}, status_code=401)
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie(
+        _ACCESS_COOKIE,
+        _access_token(),
+        max_age=30 * 24 * 3600,
+        httponly=True,
+        # Secure only when the deployment is actually served over HTTPS
+        # (prod = https://otpgod.com); plain-http/local keeps it sendable.
+        secure=_settings.public_url.lower().startswith("https"),
+        samesite="lax",
+        path="/",
+    )
+    return resp
+
+
+@app.get("/api/auth")
+async def auth_status(request: Request):
+    """Whether a password is required and whether this client is authenticated."""
+    if not _ACCESS_PASSWORD:
+        return {"authed": True, "required": False}
+    return {"authed": _has_access(request), "required": True}
+
+
+@app.post("/api/logout")
+async def logout():
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie(_ACCESS_COOKIE, path="/")
+    return resp
+
+
 @app.on_event("startup")
 async def _start_automation_scheduler() -> None:
     """Tick scheduled automations every minute (cron parity with the reference)."""

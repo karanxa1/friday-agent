@@ -97,6 +97,11 @@ class Settings:
     # absolute links to artifacts. Empty = same-origin relative links.
     public_url: str = field(default_factory=lambda: _env("FRIDAY_PUBLIC_URL", ""))
 
+    # Optional access password gating the whole UI + API. When set, the web app
+    # shows a password screen and every /api route requires a valid access
+    # cookie (issued by POST /api/login). Empty = open (local dev default).
+    access_password: str = field(default_factory=lambda: _env("FRIDAY_ACCESS_PASSWORD", ""))
+
     autonomy: str = field(default_factory=lambda: _env("FRIDAY_AUTONOMY", "L1") or "L1")
     max_spawn_depth: int = field(default_factory=lambda: _env_int("FRIDAY_MAX_SPAWN_DEPTH", 3))
     max_fanout: int = field(default_factory=lambda: _env_int("FRIDAY_MAX_FANOUT", 4))

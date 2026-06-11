@@ -43,9 +43,18 @@ _CHECK_QUESTION = (
 
 
 def _images_dir():
-    d = settings.home / "workspace" / "images"
+    # Save into the artifacts dir so the image is served at /api/files/<name>
+    # (the same place run_python / make_diagram write). Saving under
+    # workspace/images/ — which is NOT served — left the agent handing out a
+    # filesystem path that 404'd when the user opened it.
+    d = settings.artifacts_dir
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+def _public_link(name: str) -> str:
+    base = settings.public_url.rstrip("/")
+    return f"{base}/api/files/{name}" if base else f"/api/files/{name}"
 
 
 @tool(
@@ -115,8 +124,10 @@ def generate_image(
     verdict = analyze_image(str(path), _CHECK_QUESTION.format(prompt=prompt))
     audit.log("media.image_check", file=path.name, verdict=verdict[:120])
 
+    link = _public_link(path.name)
     return (
-        f"image saved: {path}\n"
+        f"image generated — open/download it here: {link}\n"
+        f"(embed it in a reply or PDF with ![{prompt[:40]}]({link}))\n"
         f"model: {resolved} | size: {size}\n"
         f"--- vision self-check ---\n{verdict}\n"
         f"(If VERDICT: FAIL, refine the prompt and regenerate before using this image.)"

@@ -25,6 +25,21 @@ def test_generate_image_validates_inputs():
     assert "size" in generate_image("a cat", size="999x999")
 
 
+def test_generated_images_save_to_served_artifacts_dir(monkeypatch, tmp_path):
+    """AI images must land in the served artifacts dir and yield a working
+    /api/files link (not an unreachable workspace path)."""
+    monkeypatch.setenv("FRIDAY_HOME", str(tmp_path))
+    from core.config import settings
+    from friday_tools.media import _images_dir, _public_link
+
+    assert _images_dir().resolve() == settings.artifacts_dir.resolve()
+    object.__setattr__(settings, "public_url", "https://otpgod.com")
+    try:
+        assert _public_link("img_x.png") == "https://otpgod.com/api/files/img_x.png"
+    finally:
+        object.__setattr__(settings, "public_url", "")
+
+
 def test_media_from_paths_inlines_home_images(monkeypatch, tmp_path):
     monkeypatch.setenv("FRIDAY_HOME", str(tmp_path))
     img = tmp_path / "workspace" / "images" / "img_1_flux.png"

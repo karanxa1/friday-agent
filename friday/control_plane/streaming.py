@@ -206,19 +206,42 @@ def _pdf_text(data: bytes) -> str:
 
 
 def _attachment_parts(attachments: list[dict[str, Any]] | None) -> list[types.Part]:
-    """User uploads -> model-visible parts: images inline, PDFs/text as text."""
+    """User uploads -> model-visible parts.
+
+    EVERY uploaded file (any type) is saved into the agent's file area under
+    ``uploads/`` so the agent can read/process it with the files tools or
+    run_python. Images are also shown inline (native vision); PDFs and text are
+    also previewed inline. The agent is told the saved paths.
+    """
     import base64
+    import os
+
+    from core.config import settings
 
     parts: list[types.Part] = []
-    for att in (attachments or [])[:4]:
+    saved: list[str] = []
+    updir = settings.file_root / "uploads"
+    try:
+        updir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+
+    for att in (attachments or [])[:8]:
         try:
             mime = str(att.get("mime") or "application/octet-stream")
             data = base64.b64decode(att.get("data") or "")
-            fname = str(att.get("name") or "attachment")
+            fname = os.path.basename(str(att.get("name") or "attachment")).replace("\\", "_") or "attachment"
         except (ValueError, TypeError):
             continue
         if not data:
             continue
+        # Save locally so the agent can read ANY type later.
+        try:
+            (updir / fname).write_bytes(data)
+            saved.append(f"uploads/{fname}")
+        except OSError:
+            pass
+        # Inline preview for the common types the model reads directly.
         if mime.startswith("image/"):
             parts.append(types.Part(inline_data=types.Blob(mime_type=mime, data=data)))
         elif mime == "application/pdf" or fname.lower().endswith(".pdf"):
@@ -226,13 +249,22 @@ def _attachment_parts(attachments: list[dict[str, Any]] | None) -> list[types.Pa
                 types.Part(text=f"[Attached PDF {fname!r} — extracted text]\n{_pdf_text(data)[:40000]}")
             )
         elif mime.startswith("text/") or fname.lower().endswith(
-            (".md", ".txt", ".csv", ".json", ".py", ".ts", ".js")
+            (".md", ".txt", ".csv", ".json", ".py", ".ts", ".js", ".html",
+             ".xml", ".yaml", ".yml", ".log", ".tsv", ".ini", ".toml")
         ):
             parts.append(
                 types.Part(
                     text=f"[Attached file {fname!r}]\n{data.decode('utf-8', 'replace')[:40000]}"
                 )
             )
+    if saved:
+        parts.append(
+            types.Part(
+                text="[Uploaded files were saved to your file area — read or process any of "
+                "them (any type: xlsx, docx, zip, audio, etc.) with the files tools or "
+                "run_python:\n" + "\n".join(f"- {p}" for p in saved) + "\n]"
+            )
+        )
     return parts
 
 

@@ -9,9 +9,9 @@ const AGENTS = ["root", "trend_scout", "content_studio", "analyst", "publisher",
 
 export type Attachment = { name: string; mime: string; data: string };
 
-const MAX_FILES = 4;
-const MAX_BYTES = 5 * 1024 * 1024;
-const ACCEPT = "image/*,.pdf,.txt,.md,.csv,.json";
+const MAX_FILES = 8;
+const MAX_BYTES = 25 * 1024 * 1024;
+const ACCEPT = "*"; // any file type — saved locally so the agent can read it
 
 export function Composer({
   onSend,

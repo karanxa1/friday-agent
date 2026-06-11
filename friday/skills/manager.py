@@ -191,6 +191,35 @@ def skill_delete(name: str) -> str:
 # --- read tools -------------------------------------------------------------
 
 
+def seed_builtin_skills() -> int:
+    """Copy the bundled starter skills into the skills dir if absent.
+
+    Idempotent — only seeds a skill whose directory does not already exist, so
+    user edits and the curator are never overwritten.
+    """
+    from pathlib import Path
+
+    src = Path(__file__).resolve().parent / "builtin"
+    if not src.is_dir():
+        return 0
+    dest_base = settings.skills_dir
+    dest_base.mkdir(parents=True, exist_ok=True)
+    seeded = 0
+    for child in sorted(src.iterdir()):
+        md = child / "SKILL.md"
+        if not md.is_file() or (dest_base / child.name).exists():
+            continue
+        try:
+            (dest_base / child.name).mkdir(parents=True, exist_ok=True)
+            (dest_base / child.name / "SKILL.md").write_text(
+                md.read_text(encoding="utf-8"), encoding="utf-8"
+            )
+            seeded += 1
+        except OSError:
+            pass
+    return seeded
+
+
 def _iter_skills():
     base = settings.skills_dir
     if not base.exists():

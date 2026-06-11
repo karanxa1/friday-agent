@@ -41,6 +41,14 @@ from core.config import settings as _settings  # noqa: E402
 _settings.artifacts_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/api/files", StaticFiles(directory=str(_settings.artifacts_dir)), name="files")
 
+# Seed bundled starter skills (research-report, data-analysis) on first boot.
+try:
+    from skills.manager import seed_builtin_skills
+
+    seed_builtin_skills()
+except Exception:  # noqa: BLE001 — never block startup on seeding
+    pass
+
 # CORS: explicit allowlist (no wildcard+credentials origin reflection). Override
 # with FRIDAY_CORS_ORIGINS (comma-separated). Credentials are off — the API is
 # token/bearer-authenticated, not cookie-authenticated.

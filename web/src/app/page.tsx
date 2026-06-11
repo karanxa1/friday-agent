@@ -461,8 +461,8 @@ export default function Home() {
         ) : (
           /* ── active chat ── */
           <>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto">
-              <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-3 py-4 sm:px-5 sm:py-6">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden">
+              <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-5 px-3 py-4 sm:px-5 sm:py-6">
                 {messages.map((m) => (
                   <Message key={m.id} message={m} />
                 ))}

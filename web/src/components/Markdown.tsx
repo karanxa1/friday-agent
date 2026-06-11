@@ -162,8 +162,10 @@ const components: Components = {
 
 export function Markdown({ children }: { children: string }): ReactNode {
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-      {children}
-    </ReactMarkdown>
+    <div className="min-w-0 [overflow-wrap:anywhere]">
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+        {children}
+      </ReactMarkdown>
+    </div>
   );
 }

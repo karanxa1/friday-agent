@@ -91,25 +91,74 @@ def run_python(code: str, timeout: int = 120) -> str:
     return out
 
 
+def _resolve_img_src(src: str) -> str:
+    """Map an image reference in PDF Markdown to a local file fpdf2 can embed.
+
+    Accepts bare artifact names, ``/api/files/<name>``, ``artifacts/<name>`` or
+    the absolute public URL form — all resolve to the file in the artifacts dir.
+    Real http(s) URLs and existing absolute paths are left as-is (fpdf2 fetches
+    URLs and reads abs paths directly)."""
+    s = (src or "").strip()
+    prefixes = [
+        settings.public_url.rstrip("/") + "/api/files/" if settings.public_url else "",
+        "/api/files/",
+        "artifacts/",
+    ]
+    for pref in prefixes:
+        if pref and s.startswith(pref):
+            s = s[len(pref):]
+            break
+    cand = _dir() / os.path.basename(s)
+    if cand.is_file():
+        return str(cand)
+    return src
+
+
 @tool(
     "artifacts",
     description=(
-        "Create a PDF from Markdown (headings, lists, tables, code all supported) "
-        "or plain text, and return an openable link to it."
+        "Create a PDF from Markdown (headings, lists, tables, code, and IMAGES "
+        "all supported) or plain text, and return an openable link. Embed images "
+        "or diagrams you generated with ![alt](name.png) in the content, and/or "
+        "pass their artifact names in `images` to append them."
     ),
 )
-def make_pdf(content: str, filename: str = "document.pdf", title: str = "") -> str:
-    """Render Markdown/text to a PDF in the artifacts dir; return its link."""
-    if not (content or "").strip():
+def make_pdf(content: str, filename: str = "document.pdf", title: str = "", images: str = "") -> str:
+    """Render Markdown/text (with embedded images) to a PDF; return its link.
+
+    Args:
+        content: Markdown or plain text. ``![alt](name.png)`` references to
+            artifacts (charts, diagrams, generated images) are embedded.
+        filename: output PDF name.
+        title: optional heading rendered at the top.
+        images: optional comma/newline-separated artifact names to append as
+            full-width images at the end of the document.
+    """
+    if not (content or "").strip() and not (images or "").strip():
         return "error: empty content"
     name = _safe_name(filename, ".pdf")
     if not name.lower().endswith(".pdf"):
         name += ".pdf"
     try:
+        import re as _re
+
         import markdown as _md
         from fpdf import FPDF
     except Exception as exc:  # noqa: BLE001
         return f"error: PDF libraries not installed ({exc})"
+
+    # Append any explicitly-listed images as Markdown image refs.
+    extra = [i.strip() for i in _re.split(r"[,\n]", images or "") if i.strip()]
+    if extra:
+        content = (content or "") + "\n\n" + "\n\n".join(
+            f"![{os.path.basename(i)}]({i})" for i in extra
+        )
+    # Rewrite image srcs to local artifact paths so fpdf2 embeds them.
+    content = _re.sub(
+        r"(!\[[^\]]*\]\()([^)]+)(\))",
+        lambda m: m.group(1) + _resolve_img_src(m.group(2)) + m.group(3),
+        content or "",
+    )
     html_body = _md.markdown(content, extensions=["tables", "fenced_code", "sane_lists"])
 
     # Prefer a full Unicode font family (regular+bold+italic) so write_html's
@@ -158,6 +207,43 @@ def make_pdf(content: str, filename: str = "document.pdf", title: str = "") -> s
     pdf.output(str(out_path))
     audit.log("artifacts.make_pdf", filename=name, bytes=out_path.stat().st_size)
     return f"PDF created — open it here: {_link(name)}"
+
+
+@tool(
+    "artifacts",
+    description=(
+        "Render a Graphviz diagram (flowcharts, graphs, org charts, ER/sequence-"
+        "style node graphs) from DOT source to an image and return an openable "
+        "link. Write standard DOT, e.g. 'digraph { A -> B; B -> C }'. The image "
+        "can be embedded in a PDF with make_pdf or shown in the chat."
+    ),
+)
+def make_diagram(dot: str, filename: str = "diagram.png") -> str:
+    """Render Graphviz DOT to an image (png/svg/pdf) in the artifacts dir.
+
+    Args:
+        dot: Graphviz DOT source (``digraph {...}`` / ``graph {...}``).
+        filename: output name; extension picks the format (png default).
+    """
+    if not (dot or "").strip():
+        return "error: empty dot source"
+    name = _safe_name(filename, ".png")
+    stem, ext = os.path.splitext(name)
+    fmt = ext.lower().lstrip(".")
+    if fmt not in ("png", "svg", "pdf"):
+        name, fmt = stem + ".png", "png"
+    try:
+        import graphviz
+    except Exception as exc:  # noqa: BLE001
+        return f"error: graphviz Python package not installed ({exc})"
+    try:
+        data = graphviz.Source(dot).pipe(format=fmt)
+    except Exception as exc:  # noqa: BLE001 — bad DOT or missing `dot` binary
+        return f"error: could not render diagram ({exc}). Check your DOT syntax."
+    out_path = _dir() / name
+    out_path.write_bytes(data)
+    audit.log("artifacts.make_diagram", filename=name, bytes=out_path.stat().st_size)
+    return f"Diagram created — open it here: {_link(name)}"
 
 
 @tool(

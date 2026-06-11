@@ -141,11 +141,17 @@ verified results — not plans."""
 
 _TOOLSET_BLOCKS: dict[str, str] = {
     "artifacts": (
-        "# Deliverables & code\n"
+        "# Deliverables, visuals & code\n"
         "Use run_python to execute Python (write files, crunch data, make "
-        "charts), make_pdf to turn Markdown/text into a PDF, and save_file for "
-        "any text/code/csv/json. Each returns an openable link — always surface "
-        "that link to the user so they can download the result."
+        "charts with matplotlib), make_diagram to render Graphviz DOT into "
+        "flowcharts/graphs, make_pdf to turn Markdown/text into a PDF, and "
+        "save_file for any text/code/csv/json. Each returns an openable "
+        "/api/files/<name> link.\n"
+        "To SHOW a chart, diagram or generated image inline in your reply, embed "
+        "it with Markdown image syntax: ![caption](<the link>) — it renders in "
+        "the chat. To put images/diagrams inside a PDF, reference them the same "
+        "way in make_pdf's content (or pass their names via the images arg). "
+        "Always surface the link so the user can download the result too."
     ),
     "memory": (
         "# Memory\n"

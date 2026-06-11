@@ -44,6 +44,49 @@ def test_make_pdf_creates_valid_pdf_with_link(arts):
     assert pdf.exists() and pdf.read_bytes().startswith(b"%PDF-")
 
 
+def _make_chart(arts) -> str:
+    """Generate a real PNG artifact via run_python; return its name."""
+    arts.run_python(
+        "import matplotlib; matplotlib.use('Agg')\n"
+        "import matplotlib.pyplot as plt\n"
+        "fig,ax=plt.subplots(); ax.plot([1,2,3],[3,1,2]); fig.savefig('chart.png')"
+    )
+    return "chart.png"
+
+
+def test_make_pdf_embeds_local_image(arts):
+    from core.config import settings
+
+    _make_chart(arts)
+    text_only = arts.make_pdf("# Plain\n\njust text, no image", "plain.pdf")
+    assert "/api/files/plain.pdf" in text_only
+    # Embed the chart both inline (![](name)) and via the images arg.
+    res = arts.make_pdf("# Report\n\n![chart](chart.png)", "report.pdf", "R", images="chart.png")
+    assert "/api/files/report.pdf" in res
+    with_img = (settings.artifacts_dir / "report.pdf").stat().st_size
+    without_img = (settings.artifacts_dir / "plain.pdf").stat().st_size
+    # An embedded raster makes the PDF materially larger than a text-only one.
+    assert with_img > without_img + 5000
+
+
+def test_resolve_img_src_maps_artifact_refs(arts):
+    from friday_tools.artifacts import _dir, _resolve_img_src
+
+    (_dir() / "pic.png").write_bytes(b"\x89PNG\r\n")
+    for ref in ("pic.png", "/api/files/pic.png", "https://otpgod.com/api/files/pic.png", "artifacts/pic.png"):
+        assert _resolve_img_src(ref) == str(_dir() / "pic.png")
+    # Real external URLs and unknown names are left untouched.
+    assert _resolve_img_src("https://example.com/x.png") == "https://example.com/x.png"
+
+
+def test_make_diagram_registered_and_validates(arts):
+    # The dot binary may be absent locally; an empty source must error cleanly
+    # without raising, and a bad/renderable source returns a string either way.
+    assert arts.make_diagram("").startswith("error:")
+    out = arts.make_diagram("digraph { A -> B }", "flow.png")
+    assert isinstance(out, str) and ("/api/files/flow.png" in out or out.startswith("error:"))
+
+
 def test_save_file_and_list(arts):
     arts.save_file("notes.md", "# notes")
     listed = arts.list_artifacts()
@@ -79,4 +122,4 @@ def test_artifacts_toolset_registered():
 
     builder.import_tool_modules()
     names = {e.name for e in registry.list()}
-    assert {"run_python", "make_pdf", "save_file", "list_artifacts"} <= names
+    assert {"run_python", "make_pdf", "make_diagram", "save_file", "list_artifacts"} <= names

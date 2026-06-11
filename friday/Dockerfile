@@ -9,7 +9,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 # System deps: git (self-dev commits), build basics.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ca-certificates fonts-dejavu-core xvfb x11-utils \
+        git ca-certificates fonts-dejavu-core xvfb x11-utils graphviz \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -39,6 +39,23 @@ def test_media_from_paths_inlines_home_images(monkeypatch, tmp_path):
     assert base64.b64decode(media["images"][0]["data"]) == _PNG
 
 
+def test_media_from_paths_inlines_api_files_link(monkeypatch, tmp_path):
+    """A generated image returned as an /api/files/<name> link (what run_python /
+    make_diagram emit) resolves to the artifacts dir and renders inline."""
+    monkeypatch.setenv("FRIDAY_HOME", str(tmp_path))
+    from core.config import settings
+    from control_plane.streaming import _media_from_paths
+
+    (settings.artifacts_dir).mkdir(parents=True, exist_ok=True)
+    (settings.artifacts_dir / "chart.png").write_bytes(_PNG)
+
+    media = _media_from_paths(
+        "Created files:\n- [chart.png](https://otpgod.com/api/files/chart.png)"
+    )
+    assert media is not None and len(media["images"]) == 1
+    assert base64.b64decode(media["images"][0]["data"]) == _PNG
+
+
 def test_media_from_paths_refuses_outside_home(monkeypatch, tmp_path):
     monkeypatch.setenv("FRIDAY_HOME", str(tmp_path / "home"))
     (tmp_path / "home").mkdir()

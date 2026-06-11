@@ -723,20 +723,41 @@ def _media_from_paths(result_text: str) -> dict[str, Any] | None:
     from core.config import settings
 
     if _IMG_PATH_RE is None:
-        _IMG_PATH_RE = re.compile(r"(/[^\s'\"]+\.(?:png|jpe?g|webp|gif))", re.IGNORECASE)
+        _IMG_PATH_RE = re.compile(r"(/[^\s'\")]+\.(?:png|jpe?g|webp|gif))", re.IGNORECASE)
     home = settings.home.resolve()
+    artifacts = settings.artifacts_dir.resolve()
     images: list[dict[str, str]] = []
-    for raw in _IMG_PATH_RE.findall(result_text or "")[:_MAX_MEDIA_ITEMS]:
-        try:
-            p = Path(raw).resolve()
-            p.relative_to(home)  # only files inside the agent home
-            if not p.is_file() or p.stat().st_size > _MAX_IMAGE_B64 * 3 // 4:
+    seen: set[str] = set()
+    for raw in _IMG_PATH_RE.findall(result_text or "")[: _MAX_MEDIA_ITEMS * 2]:
+        if len(images) >= _MAX_MEDIA_ITEMS:
+            break
+        # Two shapes: a real filesystem path under the agent home, or an
+        # ``/api/files/<name>`` link (what run_python / make_diagram return) —
+        # the latter maps by basename into the artifacts dir.
+        candidates: list[Path] = []
+        if "/api/files/" in raw:
+            candidates.append(artifacts / Path(raw).name)
+        else:
+            candidates.append(Path(raw))
+        for cand in candidates:
+            try:
+                p = cand.resolve()
+                # Only files inside the agent home (artifacts is under home).
+                p.relative_to(home)
+                key = str(p)
+                if key in seen or not p.is_file():
+                    continue
+                if p.stat().st_size > _MAX_IMAGE_B64 * 3 // 4:
+                    continue
+                ext = p.suffix.lower().lstrip(".")
+                mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg"}.get(ext, f"image/{ext}")
+                images.append(
+                    {"mime": mime, "data": base64.b64encode(p.read_bytes()).decode("ascii")}
+                )
+                seen.add(key)
+                break
+            except (OSError, ValueError):
                 continue
-            ext = p.suffix.lower().lstrip(".")
-            mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg"}.get(ext, f"image/{ext}")
-            images.append({"mime": mime, "data": base64.b64encode(p.read_bytes()).decode("ascii")})
-        except (OSError, ValueError):
-            continue
     return {"images": images, "html": [], "uris": []} if images else None
 
 

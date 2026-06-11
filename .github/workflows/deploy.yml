@@ -64,6 +64,7 @@ jobs:
             echo "FRIDAY_AUTONOMY=L3"
             echo "FRIDAY_BROWSER_HEADLESS=1"
             echo "FRIDAY_FILE_ROOT=project"
+            echo "FRIDAY_PUBLIC_URL=https://otpgod.com"
             echo "CALLMISSED_API_KEY=${CALLMISSED_API_KEY}"
             echo "CALLMISSED_BASE_URL=https://api.callmissed.com"
           } > friday.env

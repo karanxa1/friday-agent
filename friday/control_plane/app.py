@@ -31,6 +31,16 @@ from control_plane import approvals, builder
 
 app = FastAPI(title="Friday Control Plane")
 
+# Serve agent-produced artifacts (PDFs, scripts' outputs, saved files) read-only
+# at /api/files/<name>. Caddy already routes /api/* to this backend, so links
+# like https://<host>/api/files/report.pdf open directly.
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+from core.config import settings as _settings  # noqa: E402
+
+_settings.artifacts_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/api/files", StaticFiles(directory=str(_settings.artifacts_dir)), name="files")
+
 # CORS: explicit allowlist (no wildcard+credentials origin reflection). Override
 # with FRIDAY_CORS_ORIGINS (comma-separated). Credentials are off — the API is
 # token/bearer-authenticated, not cookie-authenticated.

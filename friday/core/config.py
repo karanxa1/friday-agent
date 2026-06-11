@@ -93,6 +93,10 @@ class Settings:
     callmissed_api_key: str = field(default_factory=lambda: _env("CALLMISSED_API_KEY", ""))
     callmissed_base_url: str = field(default_factory=lambda: _env("CALLMISSED_BASE_URL", "https://api.callmissed.com"))
 
+    # Public origin of this deployment (e.g. https://otpgod.com), used to build
+    # absolute links to artifacts. Empty = same-origin relative links.
+    public_url: str = field(default_factory=lambda: _env("FRIDAY_PUBLIC_URL", ""))
+
     autonomy: str = field(default_factory=lambda: _env("FRIDAY_AUTONOMY", "L1") or "L1")
     max_spawn_depth: int = field(default_factory=lambda: _env_int("FRIDAY_MAX_SPAWN_DEPTH", 3))
     max_fanout: int = field(default_factory=lambda: _env_int("FRIDAY_MAX_FANOUT", 4))
@@ -152,6 +156,12 @@ class Settings:
     @property
     def memories_dir(self) -> Path:
         return self.home / "memories"
+
+    @property
+    def artifacts_dir(self) -> Path:
+        """Files the agent produces (PDFs, scripts' outputs, saved files),
+        served read-only at /api/files/<name>."""
+        return self.home / "artifacts"
 
     @property
     def logs_dir(self) -> Path:

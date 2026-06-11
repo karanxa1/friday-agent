@@ -47,6 +47,7 @@ _TOOL_MODULES: list[str] = [
     "friday_tools.todo",
     "friday_tools.recall",
     "friday_tools.system",
+    "friday_tools.artifacts",
     "mcp_tools.manage",
 ]
 

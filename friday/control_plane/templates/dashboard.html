@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Friday — Control Plane</title>
+  <style>
+    :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#c9d1d9; --accent:#ffd700; --green:#3fb950; --red:#f85149; --dim:#8b949e; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:var(--bg); color:var(--text); }
+    header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+    header h1 { font-size:18px; margin:0; color:var(--accent); }
+    header .sub { color:var(--dim); font-size:12px; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; padding:16px; }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:14px; }
+    .panel h2 { font-size:13px; margin:0 0 10px; color:var(--accent); text-transform:uppercase; letter-spacing:.06em; }
+    .full { grid-column: 1 / -1; }
+    textarea, input { width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px; font-family:inherit; font-size:13px; }
+    button { background:var(--accent); color:#000; border:0; border-radius:6px; padding:8px 14px; font-weight:600; cursor:pointer; font-family:inherit; }
+    button.ghost { background:transparent; color:var(--text); border:1px solid var(--border); }
+    button.approve { background:var(--green); color:#000; }
+    button.reject { background:var(--red); color:#fff; }
+    pre { white-space:pre-wrap; word-break:break-word; font-size:12px; max-height:340px; overflow:auto; margin:0; }
+    .row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+    .item { border:1px solid var(--border); border-radius:6px; padding:8px; margin-bottom:8px; font-size:12px; }
+    .tag { display:inline-block; font-size:10px; padding:1px 6px; border-radius:10px; border:1px solid var(--border); color:var(--dim); margin-right:6px; }
+    .tag.publish { color:#58a6ff; border-color:#58a6ff; }
+    .tag.ad_spend { color:#d29922; border-color:#d29922; }
+    .tag.self_edit { color:var(--red); border-color:var(--red); }
+    .muted { color:var(--dim); font-size:11px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>☤ Friday</h1>
+    <span class="sub">self-modifying autonomous agent · local Claude · MCP</span>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Run the agent</h2>
+      <textarea id="goal" rows="2" placeholder="Ask Friday anything…">In one sentence, what can you do?</textarea>
+      <div class="row" style="margin-top:8px;">
+        <button onclick="runAgent()">Run</button>
+        <button class="ghost" onclick="runSocial()">Run social-media loop</button>
+      </div>
+      <pre id="runout" class="muted">output appears here…</pre>
+    </div>
+
+    <div class="panel">
+      <h2>Pending approvals</h2>
+      <div id="approvals"><span class="muted">loading…</span></div>
+    </div>
+
+    <div class="panel">
+      <h2>Skills · Memory · Curator</h2>
+      <pre id="skills" class="muted">…</pre>
+      <div class="row"><button class="ghost" onclick="runCurator()">Run curator</button></div>
+      <pre id="memory" class="muted">…</pre>
+    </div>
+
+    <div class="panel">
+      <h2>Audit log</h2>
+      <pre id="audit" class="muted">…</pre>
+    </div>
+  </div>
+
+<script>
+async function j(url, opts) { const r = await fetch(url, opts); return r.json(); }
+
+async function runAgent() {
+  const goal = document.getElementById('goal').value;
+  document.getElementById('runout').textContent = 'running…';
+  const res = await j('/api/run', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({goal})});
+  document.getElementById('runout').textContent = res.output || JSON.stringify(res, null, 2);
+  refresh();
+}
+async function runSocial() {
+  document.getElementById('runout').textContent = 'running social loop (this takes a few minutes)…';
+  const res = await j('/api/social', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})});
+  document.getElementById('runout').textContent =
+    'TRENDS\n' + (res.trends||'') + '\n\nANALYSIS\n' + (res.analysis||'') + '\n\nPENDING: ' + (res.pending_approvals||[]).length;
+  refresh();
+}
+async function runCurator() { await j('/api/curator/run', {method:'POST'}); refresh(); }
+
+async function decide(id, approve) {
+  await j('/api/approvals/' + id, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({approve})});
+  refresh();
+}
+
+async function refresh() {
+  const ap = await j('/api/approvals');
+  const box = document.getElementById('approvals');
+  if (!ap.pending.length) { box.innerHTML = '<span class="muted">no pending actions</span>'; }
+  else {
+    box.innerHTML = ap.pending.map(a =>
+      `<div class="item"><span class="tag ${a.type}">${a.type}</span>${a.summary}
+       <div class="row" style="margin-top:6px;">
+         <button class="approve" onclick="decide('${a.id}', true)">approve</button>
+         <button class="reject" onclick="decide('${a.id}', false)">reject</button>
+       </div></div>`).join('');
+  }
+  const sk = await j('/api/skills'); document.getElementById('skills').textContent = 'SKILLS\n' + sk.skills;
+  const mem = await j('/api/memory'); document.getElementById('memory').textContent = mem.memory;
+  const au = await j('/api/audit?limit=25');
+  document.getElementById('audit').textContent = au.events.slice().reverse()
+    .map(e => `${new Date(e.ts*1000).toLocaleTimeString()}  ${e.event}`).join('\n');
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

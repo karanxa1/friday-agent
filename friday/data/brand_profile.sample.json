@@ -1,0 +1,14 @@
+{
+  "brand": "Acme Devtools",
+  "tagline": "Ship faster, debug less.",
+  "voice": "Confident, technical, friendly. Plain language over hype. Short sentences.",
+  "audience": "Startup engineers and technical founders.",
+  "pillars": ["developer productivity", "reliability", "open ecosystem"],
+  "do": ["show concrete benefits", "use real examples", "be concise"],
+  "dont": ["overclaim", "use buzzwords like 'revolutionary'", "use exclamation marks excessively"],
+  "platforms": {
+    "x": {"max_chars": 280, "style": "punchy, 1-2 hashtags"},
+    "linkedin": {"max_chars": 1200, "style": "professional, a short story or insight"},
+    "instagram": {"max_chars": 2200, "style": "visual-first caption + concept brief for the image"}
+  }
+}

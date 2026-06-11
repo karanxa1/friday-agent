@@ -1,0 +1,12 @@
+{
+  "campaigns": [
+    {"id": "c_launch_x", "platform": "x", "name": "Launch awareness - X", "spend": 120.0, "impressions": 45000, "clicks": 900, "conversions": 30, "ctr": 0.02, "cpa": 4.0, "status": "active"},
+    {"id": "c_launch_li", "platform": "linkedin", "name": "Launch awareness - LinkedIn", "spend": 200.0, "impressions": 18000, "clicks": 360, "conversions": 12, "ctr": 0.02, "cpa": 16.67, "status": "active"},
+    {"id": "c_retarget_ig", "platform": "instagram", "name": "Retarget - Instagram", "spend": 80.0, "impressions": 60000, "clicks": 1500, "conversions": 8, "ctr": 0.025, "cpa": 10.0, "status": "active"}
+  ],
+  "posts": [
+    {"id": "p1", "platform": "x", "text": "We just shipped...", "likes": 320, "reposts": 45, "replies": 12, "impressions": 22000, "engagement_rate": 0.017},
+    {"id": "p2", "platform": "linkedin", "text": "Why we built...", "likes": 180, "reposts": 30, "replies": 22, "impressions": 9000, "engagement_rate": 0.026},
+    {"id": "p3", "platform": "instagram", "text": "Behind the scenes...", "likes": 540, "reposts": 0, "replies": 33, "impressions": 31000, "engagement_rate": 0.018}
+  ]
+}

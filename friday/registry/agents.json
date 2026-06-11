@@ -1,0 +1,37 @@
+{
+  "agents": {
+    "root": {
+      "description": "Friday root agent: plans, acts, measures, adapts, and learns. Delegates to sub-agents and edits itself.",
+      "tier": "hard",
+      "toolsets": [
+        "core",
+        "self_dev",
+        "skills",
+        "delegate",
+        "memory",
+        "auth",
+        "capability",
+        "sandbox",
+        "vision",
+        "files",
+        "web",
+        "todo",
+        "recall",
+        "system",
+        "research",
+        "mcp",
+        "media",
+        "browser",
+        "computer",
+        "voice",
+        "automations"
+      ],
+      "mcp": [
+        "yourmemory",
+        "metrics",
+        "callmissed_search",
+        "higgsfield"
+      ]
+    }
+  }
+}

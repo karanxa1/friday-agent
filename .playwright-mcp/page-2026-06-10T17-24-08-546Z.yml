@@ -1,0 +1,45 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - link "☤ Friday" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - navigation [ref=e5]:
+        - link "Chat" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img [ref=e7]
+          - generic [ref=e9]: Chat
+        - link "Skills" [ref=e10] [cursor=pointer]:
+          - /url: /skills
+          - img [ref=e11]
+          - generic [ref=e13]: Skills
+        - link "Memory" [ref=e14] [cursor=pointer]:
+          - /url: /memory
+          - img [ref=e15]
+          - generic [ref=e25]: Memory
+        - link "Activity" [ref=e26] [cursor=pointer]:
+          - /url: /activity
+          - img [ref=e27]
+          - generic [ref=e31]: Activity
+        - link "MCP" [ref=e32] [cursor=pointer]:
+          - /url: /mcp
+          - img [ref=e33]
+          - generic [ref=e36]: MCP
+        - link "Settings" [ref=e37] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e38]
+          - generic [ref=e41]: Settings
+    - main [ref=e42]:
+      - generic [ref=e43]:
+        - heading "Activity" [level=1] [ref=e44]
+        - generic [ref=e45]:
+          - button "all" [ref=e46] [cursor=pointer]
+          - button "run." [ref=e47] [cursor=pointer]
+          - button "stream." [ref=e48] [cursor=pointer]
+          - button "skill." [ref=e49] [cursor=pointer]
+          - button "files." [ref=e50] [cursor=pointer]
+          - button "web." [ref=e51] [cursor=pointer]
+          - button "todo." [ref=e52] [cursor=pointer]
+          - button "spawn." [ref=e53] [cursor=pointer]
+          - button "config." [ref=e54] [cursor=pointer]
+        - paragraph [ref=e56]: No events.
+  - alert [ref=e57]

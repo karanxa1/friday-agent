@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: #181818;
+  color: #e6e6e6;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* thin scrollbars (Cursor feel) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+
+/* Markdown baseline. Element styling is applied per-element in the <Markdown>
+   component (Tailwind classes); these few rules just cover wrapping/spacing and
+   anything the component doesn't override, so the two never fight on specificity. */
+.md {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.md > :first-child {
+  margin-top: 0;
+}
+.md > :last-child {
+  margin-bottom: 0;
+}
+/* thinking text: tighter + dimmer; keep code/tables readable but understated */
+.md-think p {
+  margin: 0.25em 0;
+}
+.md-think :not(pre) > code {
+  font-style: normal;
+}
+
+/* smooth color transitions everywhere interactive */
+button {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}

@@ -1,0 +1,110 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - banner [ref=e4]:
+        - generic [ref=e5]: ☤ Friday
+        - navigation [ref=e6]:
+          - link "Chat" [ref=e7] [cursor=pointer]:
+            - /url: /
+            - img [ref=e8]
+            - generic [ref=e10]: Chat
+          - link "Skills" [ref=e11] [cursor=pointer]:
+            - /url: /skills
+            - img [ref=e12]
+            - generic [ref=e14]: Skills
+          - link "Memory" [ref=e15] [cursor=pointer]:
+            - /url: /memory
+            - img [ref=e16]
+            - generic [ref=e26]: Memory
+          - link "Activity" [ref=e27] [cursor=pointer]:
+            - /url: /activity
+            - img [ref=e28]
+            - generic [ref=e32]: Activity
+          - link "MCP" [ref=e33] [cursor=pointer]:
+            - /url: /mcp
+            - img [ref=e34]
+            - generic [ref=e37]: MCP
+          - link "Settings" [ref=e38] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e39]
+            - generic [ref=e42]: Settings
+        - generic [ref=e43]:
+          - button "History" [ref=e44] [cursor=pointer]:
+            - img [ref=e45]
+            - generic [ref=e49]: History
+          - button "New chat" [ref=e50] [cursor=pointer]:
+            - img [ref=e51]
+            - generic [ref=e54]: New chat
+          - generic [ref=e55]: claude-opus-4-8 / claude-sonnet-4-6
+          - button "thinking" [ref=e56] [cursor=pointer]:
+            - img [ref=e57]
+            - generic [ref=e67]: thinking
+      - generic [ref=e70]:
+        - paragraph [ref=e71]: What should Friday do?
+        - paragraph [ref=e72]: It can search the web, edit its own code, build tools, run code in a sandbox, and manage your social media.
+        - generic [ref=e73]:
+          - button "Find trends in developer tools" [ref=e74] [cursor=pointer]
+          - button "Create a tool that reverses text" [ref=e75] [cursor=pointer]
+          - button "Grow launch awareness this week" [ref=e76] [cursor=pointer]
+          - button "Write a skill for weekly reports" [ref=e77] [cursor=pointer]
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - textbox "Ask Friday to do anything…" [ref=e81]
+          - generic [ref=e82]:
+            - button "◈ root" [ref=e84] [cursor=pointer]:
+              - text: ◈ root
+              - img [ref=e85]
+            - button [disabled] [ref=e87]:
+              - img [ref=e88]
+        - paragraph [ref=e90]: Enter to send · Shift+Enter for a new line · gated actions wait in Approvals
+    - generic [ref=e92]:
+      - generic [ref=e93]:
+        - button "Approvals 3" [ref=e94] [cursor=pointer]
+        - button "Activity" [ref=e95] [cursor=pointer]
+        - button "Skills" [ref=e96] [cursor=pointer]
+        - button "MCP" [ref=e97] [cursor=pointer]
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - generic [ref=e100]:
+            - img [ref=e101]
+            - generic [ref=e103]: publish
+          - paragraph [ref=e104]: "publish to x: AI coding agents write the code. They don't fix the broken loop between your edi"
+          - generic [ref=e105]:
+            - button "Approve" [ref=e106] [cursor=pointer]:
+              - img [ref=e107]
+              - text: Approve
+            - button "Reject" [ref=e109] [cursor=pointer]:
+              - img [ref=e110]
+              - text: Reject
+        - generic [ref=e113]:
+          - generic [ref=e114]:
+            - img [ref=e115]
+            - generic [ref=e117]: publish
+          - paragraph [ref=e118]: "publish to linkedin: A founder told me last month that his team spent more time figuring out why a bu"
+          - generic [ref=e119]:
+            - button "Approve" [ref=e120] [cursor=pointer]:
+              - img [ref=e121]
+              - text: Approve
+            - button "Reject" [ref=e123] [cursor=pointer]:
+              - img [ref=e124]
+              - text: Reject
+        - generic [ref=e127]:
+          - generic [ref=e128]:
+            - img [ref=e129]
+            - generic [ref=e131]: publish
+          - paragraph [ref=e132]: "publish to instagram: The demo: AI writes your feature in 30 seconds. The next morning: CI is red and"
+          - generic [ref=e133]:
+            - button "Approve" [ref=e134] [cursor=pointer]:
+              - img [ref=e135]
+              - text: Approve
+            - button "Reject" [ref=e137] [cursor=pointer]:
+              - img [ref=e138]
+              - text: Reject
+  - status [ref=e141]:
+    - generic [ref=e142]:
+      - img [ref=e144]
+      - generic [ref=e146]:
+        - text: Static route
+        - button "Hide static indicator" [ref=e147] [cursor=pointer]:
+          - img [ref=e148]
+  - alert [ref=e151]

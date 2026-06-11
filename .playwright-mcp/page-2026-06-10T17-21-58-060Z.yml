@@ -1,0 +1,23 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - heading "☤ Friday" [level=1] [ref=e3]
+    - generic [ref=e4]: self-modifying autonomous agent · local Claude · MCP
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - heading "Run the agent" [level=2] [ref=e7]
+      - textbox "Ask Friday anything…" [ref=e8]: In one sentence, what can you do?
+      - generic [ref=e9]:
+        - button "Run" [ref=e10] [cursor=pointer]
+        - button "Run social-media loop" [ref=e11] [cursor=pointer]
+      - generic [ref=e12]: output appears here…
+    - generic [ref=e13]:
+      - heading "Pending approvals" [level=2] [ref=e14]
+      - generic [ref=e15]: no pending actions
+    - generic [ref=e16]:
+      - heading "Skills · Memory · Curator" [level=2] [ref=e17]
+      - generic [ref=e18]: SKILLS (no skills yet)
+      - button "Run curator" [ref=e20] [cursor=pointer]
+      - generic [ref=e21]: === MEMORY.md === === USER.md ===
+    - generic [ref=e22]:
+      - heading "Audit log" [level=2] [ref=e23]
+      - generic [ref=e24]: …
